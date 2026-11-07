@@ -1,0 +1,20 @@
+{
+ "name": "표준작업 컨트롤타워",
+ "short_name": "컨트롤타워",
+ "start_url": "./",
+ "display": "standalone",
+ "background_color": "#0b2545",
+ "theme_color": "#0b2545",
+ "icons": [
+  {
+   "src": "../vendor/icon-admin-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "../vendor/icon-admin-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  }
+ ]
+}

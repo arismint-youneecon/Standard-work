@@ -2,8 +2,14 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>표준작업 컨트롤타워</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="컨트롤타워">
+<meta name="theme-color" content="#0b2545">
+<link rel="apple-touch-icon" href="../vendor/icon-admin-192.png">
 <style>
   :root{--navy:#0b2545;--blue:#1d6fd8;--bg:#f3f5f8;--card:#fff;--ink:#1b1f27;--mute:#6b7280;--line:#e3e7ee;--ok:#15803d;--nok:#b91c1c;--warn:#b45309;--r:12px}
   *{box-sizing:border-box}
@@ -112,6 +118,39 @@
   .toast.show{opacity:1}
   .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:50}
   .modal{background:#fff;border-radius:12px;padding:20px;width:460px;max-width:95vw;max-height:90vh;overflow:auto}
+  /* ---- 모바일 (폰·태블릿 세로) ---- */
+  .menu-btn{display:none}
+  @media (max-width: 900px){
+    #app{display:block}
+    aside{position:sticky;top:0;height:auto;padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top));z-index:20;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    aside .brand{font-size:15px;margin:0} aside .me{margin:0;font-size:11px;flex:1}
+    .menu-btn{display:inline-block;background:rgba(255,255,255,.15);border:0;color:#fff;border-radius:8px;padding:7px 11px;font-size:14px}
+    aside nav{display:none;width:100%;grid-template-columns:1fr 1fr;gap:4px;padding-top:8px}
+    aside nav.open{display:grid}
+    aside nav button{padding:11px 10px;font-size:14px;background:rgba(255,255,255,.08)}
+    aside .logout{position:static;width:auto;padding:7px 11px;font-size:13px}
+    main{padding:14px 12px 40px;max-width:none}
+    h1{font-size:19px;margin-bottom:12px}
+    .card{padding:14px 12px;border-radius:10px}
+    .kpi{grid-template-columns:1fr 1fr;gap:8px} .kpi .n{font-size:22px} .kpi .card{padding:10px 12px} .kpi .l{font-size:11px}
+    .grid2,.grid3,.charts{grid-template-columns:1fr}
+    .chart[style*="grid-column"]{grid-column:auto}
+    .card>table,.card table{display:block;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
+    .card table td,.card table th{white-space:nowrap}
+    .mx{display:block;overflow-x:auto} .mx td.eq{max-width:160px;white-space:normal}
+    .row>input[type=text],.row>input[type=email],.row>input[type=number],.row>select{width:100%!important;flex:1 1 100%}
+    .row{gap:8px}
+    .fe-fields{grid-template-columns:1fr}
+    .sticky-bar{flex-wrap:wrap;padding:10px 0;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+    .sticky-bar .btn{flex:1 1 45%;text-align:center;padding:12px}
+    .btn{padding:10px 14px} .btn.sm{padding:6px 10px;font-size:13px}
+    input[type=text],input[type=email],input[type=password],input[type=number],select,textarea{font-size:16px;padding:10px}  /* iOS 자동 확대 방지 */
+    .modal{width:96vw;padding:14px} #modal .modal{width:96vw!important}
+    .tabs{overflow-x:auto;flex-wrap:nowrap} .tabs button{white-space:nowrap;padding:9px 10px}
+    .qr-grid{grid-template-columns:1fr 1fr}
+    #login .card{width:92vw}
+    .file-box{flex-wrap:wrap}
+  }
 </style>
 </head>
 <body>
@@ -131,6 +170,7 @@
   <aside>
     <div class="brand">컨트롤타워</div>
     <div class="me" id="me"></div>
+    <button class="menu-btn" id="menu-btn" onclick="document.getElementById('nav').classList.toggle('open')">☰ 메뉴</button>
     <nav id="nav">
       <button data-p="dash">📊 대시보드</button>
       <button data-p="org">🏭 라인 · 설비</button>
@@ -147,8 +187,8 @@
 </div>
 <div id="toast" class="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="../vendor/supabase.js"></script>
+<script src="../vendor/qrcode.min.js"></script>
 <script src="../config.js"></script>
 <script src="../worker/i18n.js"></script>
 <script>if(new URLSearchParams(location.search).get('demo')==='1'){ document.write('<script src="demo-mock.js"><\/script>'); }</script>
@@ -218,7 +258,7 @@ function go(p){
   $('#main').innerHTML = '<p class="muted">불러오는 중…</p>';
   PAGES[p]();
 }
-$('#nav').onclick = e => { const b = e.target.closest('button'); if(b) go(b.dataset.p); };
+$('#nav').onclick = e => { const b = e.target.closest('button'); if(b){ go(b.dataset.p); $('#nav').classList.remove('open'); window.scrollTo(0,0); } };
 
 // =============================== 대시보드 ===============================
 let DASH = { days: 7, openLine: null };

@@ -16,7 +16,7 @@ qr-standard-work/
 ```
 
 구성: 정적 HTML 2개 (GitHub Pages 등 아무 정적 호스팅) + Supabase (DB·인증·파일저장·권한).
-서버 코드 없음. 유지보수는 `config.js`와 HTML 파일 2개, SQL 1개가 전부입니다.
+서버 코드 없음. 외부 접속 도메인은 호스팅 주소와 `*.supabase.co` 두 개뿐 (라이브러리는 `vendor/`에 동봉). 유지보수는 `config.js`와 HTML 파일 2개, SQL 1개가 전부입니다.
 
 ---
 

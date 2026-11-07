@@ -6,6 +6,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0b2545">
 <title>표준작업 가이드</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="표준작업">
+<link rel="apple-touch-icon" href="../vendor/icon-worker-192.png">
 <style>
   :root{
     --navy:#0b2545; --blue:#1d6fd8; --bg:#f3f5f8; --card:#fff; --ink:#1b1f27; --mute:#6b7280;
@@ -154,7 +158,7 @@
 
 <div id="toast" class="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../vendor/supabase.js"></script>
 <script src="../config.js"></script>
 <script src="i18n.js"></script>
 <script>
