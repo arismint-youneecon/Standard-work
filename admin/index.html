@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>표준작업 컨트롤타워</title>
+<style>
+  :root{--navy:#0b2545;--blue:#1d6fd8;--bg:#f3f5f8;--card:#fff;--ink:#1b1f27;--mute:#6b7280;--line:#e3e7ee;--ok:#15803d;--nok:#b91c1c;--warn:#b45309;--r:12px}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;font-size:14px;line-height:1.5}
+  button,input,select,textarea{font:inherit}
+  .hidden{display:none!important}
+  a{color:var(--blue)}
+  /* layout */
+  #app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+  aside{background:var(--navy);color:#fff;padding:18px 14px;position:sticky;top:0;height:100vh}
+  aside .brand{font-weight:800;font-size:16px;margin-bottom:4px}
+  aside .me{font-size:12px;opacity:.75;margin-bottom:18px;line-height:1.4}
+  aside nav button{display:block;width:100%;text-align:left;background:none;border:0;color:#fff;padding:10px 12px;border-radius:8px;cursor:pointer;opacity:.8;margin-bottom:2px}
+  aside nav button.on{background:rgba(255,255,255,.14);opacity:1;font-weight:700}
+  aside .logout{position:absolute;bottom:18px;left:14px;right:14px;background:rgba(255,255,255,.1);border:0;color:#fff;padding:9px;border-radius:8px;cursor:pointer}
+  main{padding:24px 28px;max-width:1200px}
+  h1{font-size:22px;margin:0 0 16px}
+  h2{font-size:16px;margin:0 0 10px}
+  .card{background:var(--card);border-radius:var(--r);padding:18px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:12px;color:var(--mute);font-weight:600;white-space:nowrap}
+  tr.sel{background:#eef4ff}
+  input[type=text],input[type=email],input[type=password],input[type=number],input[type=date],select,textarea{width:100%;padding:8px 10px;border:1px solid #cfd6e0;border-radius:8px;background:#fff}
+  textarea{min-height:70px;resize:vertical}
+  label.f{display:block;font-size:12px;color:var(--mute);margin:8px 0 3px}
+  .btn{background:var(--blue);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600;white-space:nowrap}
+  .btn.sec{background:#e5e9f0;color:var(--ink)}
+  .btn.ok{background:var(--ok)} .btn.danger{background:var(--nok)} .btn.sm{padding:4px 9px;font-size:12px}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .badge{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;background:#e5e9f0;font-weight:700}
+  .badge.pub{background:#dcfce7;color:var(--ok)} .badge.draft{background:#fef3c7;color:var(--warn)} .badge.arch{background:#eee;color:#888}
+  .badge.admin{background:#dbeafe;color:#1e40af} .badge.line_manager{background:#dcfce7;color:var(--ok)} .badge.author{background:#f3e8ff;color:#6b21a8}
+  .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .kpi .card{margin:0;padding:14px 16px}
+  .kpi .n{font-size:28px;font-weight:800} .kpi .l{font-size:12px;color:var(--mute)}
+  .kpi .card.link{cursor:pointer;transition:.12s;border:1px solid transparent} .kpi .card.link:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(29,111,216,.18)} .kpi .go{font-size:11px;color:var(--blue);margin-top:4px}
+  .tabs{display:flex;gap:4px;border-bottom:2px solid var(--line);margin-bottom:14px}
+  .tabs button{background:none;border:0;padding:9px 14px;cursor:pointer;color:var(--mute);border-bottom:3px solid transparent;margin-bottom:-2px;font-weight:600}
+  .tabs button.on{color:var(--blue);border-bottom-color:var(--blue)}
+  .muted{color:var(--mute);font-size:12px}
+  .err{color:var(--nok);font-weight:600}
+  /* form editor */
+  .fe-group{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px;background:#fafbfd}
+  .fe-group>h3{margin:0 0 8px;font-size:14px;display:flex;justify-content:space-between;align-items:center}
+  .fe-item{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;position:relative}
+  .fe-item .tools{position:absolute;right:8px;top:8px;display:flex;gap:4px}
+  .fe-item .tools button{background:#eef2f7;border:0;border-radius:6px;width:26px;height:26px;cursor:pointer}
+  .fe-item .idx{font-size:11px;color:var(--mute);font-weight:700}
+  .fe-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 12px}
+  .fe-fields .wide{grid-column:1/-1}
+  .file-box{display:flex;gap:10px;align-items:center;margin-top:3px}
+  .file-box img{width:72px;height:54px;object-fit:cover;border-radius:6px;background:#eee}
+  .file-box .fn{font-size:12px;color:var(--mute);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sticky-bar{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:12px 0;display:flex;gap:10px;align-items:center;margin-top:10px}
+  .progress{height:6px;background:#e5e9f0;border-radius:3px;overflow:hidden;width:200px}
+  .progress>div{height:100%;background:var(--blue);width:0}
+  /* login */
+  #login{min-height:100vh;display:flex;align-items:center;justify-content:center}
+  #login .card{width:360px}
+  /* qr print */
+  .qr-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .qr-card{border:2px solid #111;border-radius:12px;padding:14px;text-align:center;background:#fff;page-break-inside:avoid}
+  .qr-card canvas{width:180px;height:180px}
+  .qr-card .t1{font-weight:800;font-size:16px} .qr-card .t2{font-size:12px;color:#444}
+  @media print{ aside,.noprint{display:none!important} #app{display:block} main{padding:0;max-width:none} .card{box-shadow:none} }
+  /* dashboard visuals */
+  .kpi{grid-template-columns:repeat(6,1fr)}
+  .meter{height:6px;background:#e5e9f0;border-radius:3px;overflow:hidden;margin-top:6px}
+  .meter>div{height:100%;background:var(--series-1,#2a78d6);border-radius:3px}
+  .mx{width:100%;border-collapse:separate;border-spacing:3px}
+  .mx th{font-size:11px;padding:4px 6px;text-align:center;white-space:nowrap}
+  .mx th.eq{text-align:left}
+  .mx td{padding:0}
+  .mx td.eq{padding:0 8px 0 4px;white-space:nowrap;font-size:13px}
+  .mx td.eq .muted{display:block;font-size:11px}
+  .cell{display:flex;align-items:center;justify-content:center;gap:4px;height:34px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid transparent}
+  .cell:hover{border-color:var(--navy)}
+  .cell.pub{background:#e6f4e6;color:#145214} .cell.draft{background:#fff3d6;color:#7a4b00} .cell.none{background:#f1f3f6;color:#9aa0a8;font-weight:500}
+  .cell small{font-weight:500;opacity:.8}
+  .linehead td{padding:10px 4px 4px;font-weight:800;font-size:13px}
+  .linehead .meter{display:inline-block;width:140px;vertical-align:middle;margin:0 8px}
+  .segbar{display:flex;height:22px;border-radius:6px;overflow:hidden;gap:2px;background:var(--surface-1,#fff)}
+  .segbar>div{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;min-width:0;overflow:hidden}
+  .seglegend{display:flex;gap:14px;font-size:12px;color:var(--mute);margin-top:8px;flex-wrap:wrap}
+  .seglegend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+  .age{font-size:11px;color:var(--mute)}
+  /* charts */
+  .viz-root{--surface-1:#fff;--text-primary:#1b1f27;--text-secondary:#52514e;--text-muted:#8a8a86;--grid:#ececea;--series-1:#2a78d6;--series-2:#eb6834}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px}
+  .chart{background:var(--surface-1);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .chart h3{margin:0 0 2px;font-size:14px;color:var(--text-primary)}
+  .chart .sub{font-size:12px;color:var(--text-secondary);margin-bottom:8px}
+  .viz-root svg{width:100%;height:auto;display:block;overflow:visible}
+  .viz-root text{font-family:inherit;fill:var(--text-secondary);font-size:11px}
+  .viz-root .lbl{fill:var(--text-primary);font-weight:600}
+  .viz-root .grid{stroke:var(--grid);stroke-width:1}
+  .viz-root .hit{fill:transparent;cursor:crosshair}
+  .legend{display:flex;gap:14px;font-size:12px;color:var(--text-secondary);margin-bottom:6px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .viztip{position:fixed;pointer-events:none;background:#fff;border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.12);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text-primary);z-index:80;display:none;white-space:nowrap}
+  .toast{position:fixed;right:20px;bottom:20px;background:#111;color:#fff;padding:10px 16px;border-radius:8px;opacity:0;transition:.2s;z-index:99}
+  .toast.show{opacity:1}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:50}
+  .modal{background:#fff;border-radius:12px;padding:20px;width:460px;max-width:95vw;max-height:90vh;overflow:auto}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="card">
+    <h1 style="font-size:18px">표준작업 컨트롤타워</h1>
+    <p class="muted" id="login-plant"></p>
+    <label class="f">이메일</label><input type="email" id="l-email" autocomplete="username">
+    <label class="f">비밀번호</label><input type="password" id="l-pw" autocomplete="current-password">
+    <button class="btn" id="l-btn" style="width:100%;margin-top:14px">로그인</button>
+    <div class="err" id="l-err" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <aside>
+    <div class="brand">컨트롤타워</div>
+    <div class="me" id="me"></div>
+    <nav id="nav">
+      <button data-p="dash">📊 대시보드</button>
+      <button data-p="org">🏭 라인 · 설비</button>
+      <button data-p="edit">📝 표준 편집</button>
+      <button data-p="workers">👷 작업자 · 접속코드</button>
+      <button data-p="users" data-admin="1">🔑 편집자 계정</button>
+      <button data-p="texts" data-admin="1">💬 앱 문구 · 설정</button>
+      <button data-p="logs">📋 열람 · 변경 로그</button>
+      <button data-p="qr">🔳 QR코드 출력</button>
+    </nav>
+    <button class="logout" id="logout">로그아웃</button>
+  </aside>
+  <main id="main"></main>
+</div>
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="../config.js"></script>
+<script src="../worker/i18n.js"></script>
+<script>if(new URLSearchParams(location.search).get('demo')==='1'){ document.write('<script src="demo-mock.js"><\/script>'); }</script>
+<script>
+const CFG = window.APP_CONFIG || {};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = d => d ? new Date(d).toLocaleString('ko-KR', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+const toast = m => { const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); };
+const SECTIONS = { safety:'안전', sop:'표준작업', inspection:'자주검사', quality:'품질', abnormal:'이상조치' };   // 작업자 앱 탭 순서와 동일 (안전 최우선)
+const LANGS = [['en','English'],['zh','中文'],['ja','日本語'],['vi','Tiếng Việt'],['uz','Oʻzbekcha'],['ru','Русский'],['ne','नेपाली'],['kk','Қазақша'],['bn','বাংলা'],['fr','Français']];
+const SKIP_KEY = /(^|_)path$|^icon$|^phone$|^url$|^stop_line$/;
+const ROLE = { admin:'관리자', line_manager:'라인 책임자', author:'작성자' };
+
+let sb, me = null, myLines = [], plants = [], lines = [], equipment = [];
+const WORKER_BASE = location.href.replace(/admin\/?(index\.html)?(\?.*)?(#.*)?$/, 'worker/');
+
+// =============================== 인증 ===============================
+async function boot(){
+  $('#login-plant').textContent = CFG.PLANT_NAME || '';
+  if(window.DEMO_MOCK){ sb = window.DEMO_MOCK.createClient(); document.body.insertAdjacentHTML('beforeend','<div style="position:fixed;bottom:10px;right:10px;background:#f59e0b;color:#111;font-size:11px;font-weight:800;padding:2px 8px;border-radius:6px;z-index:99">DEMO · 저장은 새로고침하면 사라집니다</div>'); await afterLogin(); return; }
+  if(!CFG.SUPABASE_URL || CFG.SUPABASE_URL.includes('YOUR-')){ $('#l-err').textContent = 'config.js 에 Supabase 주소/키를 먼저 넣어 주세요.'; return; }
+  sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session) await afterLogin();
+}
+$('#l-btn').onclick = async () => {
+  $('#l-err').textContent = ''; $('#l-btn').disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email: $('#l-email').value.trim(), password: $('#l-pw').value });
+  $('#l-btn').disabled = false;
+  if(error){ $('#l-err').textContent = '로그인 실패: ' + error.message; return; }
+  afterLogin();
+};
+$('#l-pw').addEventListener('keydown', e => { if(e.key==='Enter') $('#l-btn').click(); });
+$('#logout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+
+async function afterLogin(){
+  const { data: p } = await sb.from('profiles').select('*').eq('id', (await sb.auth.getUser()).data.user.id).maybeSingle();
+  if(!p || !p.active){ $('#l-err').textContent = '이 계정에는 컨트롤타워 권한이 없습니다. 관리자에게 요청하세요.'; await sb.auth.signOut(); return; }
+  me = p;
+  const { data: pl } = await sb.from('profile_lines').select('line_id').eq('profile_id', me.id);
+  myLines = (pl||[]).map(x => x.line_id);
+  await loadOrg();
+  $('#me').innerHTML = `${esc(me.name)}<br><span class="badge ${me.role}">${ROLE[me.role]}</span>`;
+  document.querySelectorAll('[data-admin]').forEach(b => b.classList.toggle('hidden', me.role !== 'admin'));
+  $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
+  go('dash');
+}
+const canEdit = lineId => me.role === 'admin' || myLines.includes(lineId);
+const canPublish = lineId => me.role === 'admin' || (me.role === 'line_manager' && myLines.includes(lineId));
+const editableLines = () => lines.filter(l => canEdit(l.id));
+
+async function loadOrg(){
+  const [a,b,c] = await Promise.all([
+    sb.from('plants').select('*').order('name'),
+    sb.from('lines').select('*').order('sort').order('code'),
+    sb.from('equipment').select('*').order('sort').order('code'),
+  ]);
+  plants = a.data||[]; lines = b.data||[]; equipment = c.data||[];
+}
+const lineName = id => lines.find(l => l.id === id)?.name || '';
+
+// =============================== 라우팅 ===============================
+const PAGES = {};
+function go(p){
+  document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.p === p));
+  $('#main').innerHTML = '<p class="muted">불러오는 중…</p>';
+  PAGES[p]();
+}
+$('#nav').onclick = e => { const b = e.target.closest('button'); if(b) go(b.dataset.p); };
+
+// =============================== 대시보드 ===============================
+let DASH = { days: 7, openLine: null };
+const sinceISO = () => DASH.days === 0 ? new Date(new Date().setHours(0,0,0,0)).toISOString() : new Date(Date.now() - DASH.days*864e5).toISOString();
+const pct = (a,b) => b ? Math.round(a/b*100) : 0;
+PAGES.dash = async () => {
+  const { data: st } = await sb.from('v_equipment_status').select('*').order('line_name').order('code');
+  const since = sinceISO();
+  const { data: ls } = await sb.rpc('line_view_stats', { p_since: since });
+  const periodLabel = DASH.days === 0 ? '오늘' : `최근 ${DASH.days}일`;
+  const [{ data: ov }, { data: wk }, { count: codesUnused }] = await Promise.all([
+    sb.from('v_standard_overview').select('*'),
+    sb.from('workers').select('id,line_id,scan_valid_until,blocked'),
+    sb.from('access_codes').select('*', { count:'exact', head:true }).is('used_by', null).gte('expires_at', new Date().toISOString()),
+  ]);
+  const OV = ov || [], WK = (wk||[]).filter(w => canEdit(w.line_id));
+  const eqMine = equipment.filter(e => e.active && canEdit(e.line_id));
+  const pubCells = OV.filter(o => o.status==='published' && eqMine.some(e=>e.id===o.equipment_id)).length;
+  const totalCells = eqMine.length * 5;
+  const drafts = OV.filter(o => o.status==='draft' && eqMine.some(e=>e.id===o.equipment_id));
+  const pubs = OV.filter(o => o.status==='published' && eqMine.some(e=>e.id===o.equipment_id));
+  const translated = pubs.filter(o => +o.lang_count >= 10).length;
+  const active = WK.filter(w => !w.blocked && new Date(w.scan_valid_until) > new Date()).length;
+  const expired = WK.filter(w => !w.blocked && new Date(w.scan_valid_until) <= new Date()).length;
+  const blocked = WK.filter(w => w.blocked).length;
+  const { count: views } = await sb.from('view_logs').select('*', { count:'exact', head:true }).gte('viewed_at', since);
+  const { count: workers } = await sb.from('workers').select('*', { count:'exact', head:true });
+  const rows = (st||[]).filter(r => canEdit(r.line_id) || me.role==='admin');
+  const full = rows.filter(r => r.published_sections === 5).length;
+  $('#main').innerHTML = `<h1>대시보드</h1>
+    <div class="kpi viz-root">
+      <div class="card link" onclick="kpiEquipment('all')"><div class="n">${rows.length}</div><div class="l">등록 설비</div><div class="go">설비 목록 →</div></div>
+      <div class="card link" onclick="document.getElementById('mx-box').scrollIntoView({behavior:'smooth'})"><div class="n">${pct(pubCells,totalCells)}%</div><div class="l">표준 게시 완성도 <span class="muted">(${pubCells}/${totalCells} 섹션)</span></div><div class="meter"><div style="width:${pct(pubCells,totalCells)}%"></div></div><div class="go">매트릭스 보기 ↓</div></div>
+      <div class="card link" onclick="kpiEquipment('incomplete')"><div class="n">${full} <span class="muted" style="font-size:14px;font-weight:600">/ ${rows.length}</span></div><div class="l">5개 섹션 모두 게시된 설비</div><div class="go">미완료 ${rows.length - full}개 →</div></div>
+      <div class="card link" onclick="document.getElementById('draft-box').scrollIntoView({behavior:'smooth'})"><div class="n">${drafts.length}</div><div class="l">게시 대기 초안</div><div class="go">목록 ↓</div></div>
+      <div class="card link" onclick="go('workers')"><div class="n">${active} <span class="muted" style="font-size:14px;font-weight:600">/ ${WK.length}</span></div><div class="l">세션 활성 작업자</div><div class="meter"><div style="width:${pct(active,WK.length)}%"></div></div><div class="go">작업자 · 접속코드 →</div></div>
+      <div class="card link" onclick="go('logs')"><div class="n">${views??0}</div><div class="l">최근 7일 열람 수</div><div class="go">열람 로그 →</div></div>
+    </div>
+    ${renderMatrix(OV, eqMine)}
+    <div class="card"><div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">라인별 표준 열람 현황 <span class="muted" style="font-weight:400">(${periodLabel})</span></h2>
+      <div class="row"><label>기간</label><select id="dash-days" onchange="DASH.days=+this.value;DASH.openLine=null;go('dash')" style="width:110px">${[[0,'오늘'],[7,'최근 7일'],[30,'최근 30일']].map(([d,l]) => `<option value="${d}" ${DASH.days===d?'selected':''}>${l}</option>`).join('')}</select></div></div>
+      <table><tr><th>라인</th><th>설비</th><th>등록 작업자</th><th>열람 작업자</th><th>미열람</th><th>QR 스캔</th><th>열람 수</th><th>안전</th><th>표준작업</th><th>자주검사</th><th>품질</th><th>이상조치</th><th>최근 열람</th><th></th></tr>
+      ${(ls||[]).map(r => { const p = pct(r.workers_viewed, r.workers_registered); const un = r.workers_registered - r.workers_viewed; return `<tr class="${DASH.openLine===r.line_id?'sel':''}"><td><b>${esc(r.line_code)}</b> ${esc(r.line_name)}</td><td>${r.equipment_count}</td><td>${r.workers_registered}</td>
+        <td><b>${r.workers_viewed}</b> <span class="badge ${p>=80?'pub':p>=50?'draft':'arch'}">${p}%</span></td><td>${un>0?`<span class="badge arch">${un}명</span>`:'—'}</td><td>${r.scans}</td><td><b>${r.views}</b></td>
+        <td>${r.v_safety}</td><td>${r.v_sop}</td><td>${r.v_inspection}</td><td>${r.v_quality}</td><td>${r.v_abnormal}</td><td class="muted">${fmt(r.last_viewed_at)||'—'}</td>
+        <td><button class="btn sm sec" onclick="DASH.openLine=DASH.openLine==='${r.line_id}'?null:'${r.line_id}';go('dash')">${DASH.openLine===r.line_id?'닫기':'설비별 보기'}</button></td></tr>`; }).join('') || '<tr><td colspan=14 class="muted">라인이 없습니다.</td></tr>'}
+      </table>
+      <p class="muted" style="margin:8px 0 0">열람 작업자 = 기간 내 QR 스캔 또는 섹션 열람 기록이 1번이라도 있는 등록 작업자. 미열람 = 등록돼 있지만 기간 내 기록이 없는 작업자(설비별 보기에서 명단 확인).</p>
+      <div class="viz-root" id="dash-charts"></div>
+      <div id="dash-line"></div></div>
+    <div class="grid3 viz-root">
+      <div class="card"><h2>작업자 세션 상태</h2>
+        ${WK.length ? `<div class="segbar">${[[active,'#0ca30c','활성'],[expired,'#9aa0a8','만료'],[blocked,'#d03b3b','차단']].filter(x=>x[0]>0).map(([n,c,l]) => `<div style="flex:${n};background:${c}" title="${l} ${n}명">${n}</div>`).join('')}</div>
+        <div class="seglegend"><span><i style="background:#0ca30c"></i>✓ 활성 ${active}명 (QR 스캔 후 유효)</span><span><i style="background:#9aa0a8"></i>○ 만료 ${expired}명</span><span><i style="background:#d03b3b"></i>✕ 차단 ${blocked}명</span></div>` : '<p class="muted">등록된 작업자가 없습니다.</p>'}
+        <div style="margin-top:12px;font-size:13px">미사용 접속코드 <b>${codesUnused??0}</b>개 <span class="muted">(발급했지만 아직 등록 안 함)</span></div>
+        <div style="margin-top:12px"><h3 style="font-size:13px;margin:0 0 4px">라인별 등록 작업자</h3>${hbarChart(lines.filter(l=>canEdit(l.id)&&l.active).map(l => ({ label:l.code, value: WK.filter(w=>w.line_id===l.id).length, max: Math.max(1, ...lines.map(x=>WK.filter(w=>w.line_id===x.id).length)), text: WK.filter(w=>w.line_id===l.id).length + '명' })), { W: 330, L: 60, R: 44 })}</div></div>
+      <div class="card" id="draft-box"><h2>게시 대기 초안 <span class="muted" style="font-weight:400">${drafts.length}건</span></h2>
+        ${drafts.length ? `<table><tr><th>설비</th><th>섹션</th><th>마지막 수정</th><th></th></tr>${drafts.sort((a,b)=>a.updated_at<b.updated_at?-1:1).slice(0,12).map(d => { const e = equipment.find(x=>x.id===d.equipment_id); const days = Math.floor((Date.now()-new Date(d.updated_at))/864e5); return `<tr><td><b>${esc(e?.code||'')}</b><div class="muted">${esc(e?.name||'')}</div></td><td>${SECTIONS[d.section]}</td><td>${fmt(d.updated_at)}<div class="age">${days>=7?`<span class="badge draft">${days}일 경과</span>`:days+'일 전'}</div></td><td><button class="btn sm sec" onclick="ED.section='${d.section}';openEditor('${d.equipment_id}')">열기</button></td></tr>`; }).join('')}</table>${drafts.length>12?`<p class="muted">외 ${drafts.length-12}건</p>`:''}` : '<p class="muted">대기 중인 초안이 없습니다.</p>'}</div>
+      <div class="card"><h2>최근 게시 이력</h2>
+        ${pubs.length ? `<table><tr><th>일시</th><th>설비 · 섹션</th><th>버전</th></tr>${pubs.sort((a,b)=>a.published_at<b.published_at?1:-1).slice(0,10).map(p => { const e = equipment.find(x=>x.id===p.equipment_id); return `<tr><td class="muted" style="white-space:nowrap">${fmt(p.published_at)}</td><td><b>${esc(e?.code||'')}</b> ${SECTIONS[p.section]}<div class="muted">${esc(p.change_note||'')}</div></td><td><span class="badge pub">v${p.version}</span>${+p.lang_count>=10?' <span class="badge" title="10개 언어 번역됨">🌐</span>':''}</td></tr>`; }).join('')}</table>` : '<p class="muted">게시된 표준이 없습니다.</p>'}
+        <div style="margin-top:10px;font-size:13px">번역 완료 <b>${translated}</b> / ${pubs.length} 게시본 <span class="muted">(10개 언어 모두)</span><div class="meter"><div style="width:${pct(translated,pubs.length)}%"></div></div></div></div>
+    </div>
+`;
+  wireTips($('#main'));
+  renderDashCharts(ls||[]);
+  if(DASH.openLine) renderLineDetail();
+};
+
+// 표준 게시 매트릭스: 설비 × 섹션
+function renderMatrix(OV, eqMine){
+  const secs = Object.keys(SECTIONS);
+  const myLines = lines.filter(l => l.active && canEdit(l.id) && eqMine.some(e => e.line_id === l.id));
+  let body = '';
+  myLines.forEach(l => {
+    const eqs = eqMine.filter(e => e.line_id === l.id);
+    const pub = OV.filter(o => o.status==='published' && eqs.some(e=>e.id===o.equipment_id)).length, tot = eqs.length*5;
+    body += `<tr class="linehead"><td colspan="6">${esc(l.code)} ${esc(l.name)} <span class="meter"><div style="width:${pct(pub,tot)}%"></div></span><span class="muted" style="font-weight:500">${pct(pub,tot)}% (${pub}/${tot})</span></td></tr>`;
+    eqs.forEach(e => {
+      body += `<tr><td class="eq"><b>${esc(e.code)}</b> ${esc(e.name)}<span class="muted">${esc(e.process_name||'')}</span></td>` + secs.map(sec => {
+        const p = OV.find(o => o.equipment_id===e.id && o.section===sec && o.status==='published');
+        const d = OV.find(o => o.equipment_id===e.id && o.section===sec && o.status==='draft');
+        const cls = p ? 'pub' : d ? 'draft' : 'none';
+        const txt = p ? `✓ v${p.version}${d?' <small>+초안</small>':''}${+p.lang_count>=10?' <small>🌐</small>':''}` : d ? '● 초안' : '— 없음';
+        const tip = p ? `게시 v${p.version} · ${fmt(p.published_at)}${d?' · 수정 중인 초안 있음':''} · 번역 ${p.lang_count}/10` : d ? `초안 · 마지막 수정 ${fmt(d.updated_at)}` : '아직 작성 안 됨';
+        return `<td><div class="cell ${cls}" title="${esc(tip)}" onclick="ED.section='${sec}';openEditor('${e.id}')">${txt}</div></td>`;
+      }).join('') + `</tr>`;
+    });
+  });
+  return `<div class="card" id="mx-box"><div class="row" style="justify-content:space-between"><h2 style="margin:0">표준 게시 매트릭스 <span class="muted" style="font-weight:400">설비 × 섹션 — 칸을 누르면 바로 편집</span></h2>
+    <div class="seglegend" style="margin:0"><span><i style="background:#e6f4e6;border:1px solid #bfe3bf"></i>✓ 게시됨</span><span><i style="background:#fff3d6;border:1px solid #f1d9a0"></i>● 초안만</span><span><i style="background:#f1f3f6;border:1px solid #e0e3e8"></i>— 없음</span><span>🌐 10개 언어 번역 완료</span></div></div>
+    <table class="mx"><tr><th class="eq">설비</th>${secs.map(s => `<th>${SECTIONS[s]}</th>`).join('')}</tr>${body || '<tr><td colspan=6 class="muted">설비가 없습니다.</td></tr>'}</table></div>`;
+}
+
+// KPI 카드 클릭: 설비 목록 (전체 / 미완료)
+async function kpiEquipment(mode){
+  const { data: st } = await sb.from('v_equipment_status').select('*').order('line_name').order('code');
+  const rows = (st||[]).filter(r => mode === 'all' || r.published_sections < 5);
+  modal(`<h2>${mode === 'all' ? '등록 설비 전체' : '5개 섹션이 모두 게시되지 않은 설비'} <span class="muted" style="font-weight:400">${rows.length}개</span></h2>
+    <table><tr><th>라인</th><th>설비</th><th>게시</th><th>초안</th><th>최근 게시</th><th></th></tr>
+    ${rows.map(r => `<tr><td>${esc(r.line_name)}</td><td><b>${esc(r.code)}</b> ${esc(r.name)}<div class="muted">${esc(r.process_name||'')}</div></td><td><span class="badge ${r.published_sections===5?'pub':r.published_sections?'draft':'arch'}">${r.published_sections}/5</span></td><td>${r.draft_sections||''}</td><td class="muted">${fmt(r.last_published_at)||'—'}</td><td><button class="btn sm sec" onclick="closeModal();openEditor('${r.equipment_id}')">편집</button></td></tr>`).join('') || '<tr><td colspan=6 class="muted">없음</td></tr>'}</table>
+    <div class="muted" style="margin-top:8px"><a href="#" onclick="closeModal();go('org');return false">라인 · 설비 관리로 이동</a></div>`);
+  $('#modal .modal').style.width = '760px';
+}
+
+// ---- 차트 (라이브러리 없이 SVG) ----
+const vizTip = () => { let t = $('#viztip'); if(!t){ t = document.createElement('div'); t.id='viztip'; t.className='viztip'; document.body.appendChild(t); } return t; };
+function tipShow(e, html){ const t = vizTip(); t.innerHTML = html; t.style.display='block'; t.style.left = (e.clientX + 14) + 'px'; t.style.top = (e.clientY - 10) + 'px'; }
+function tipHide(){ vizTip().style.display='none'; }
+const niceMax = v => { if(v <= 0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); const n = v / p; const m = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10; return m * p; };
+
+// 가로 막대 (단일 시리즈): rows = [{label, value, max, text}]
+function hbarChart(rows, { unit='', W = 520, L = 110, R = 56 } = {}){
+  const rowH = 30, H = rows.length * rowH + 8;
+  const max = Math.max(1, ...rows.map(r => r.max ?? r.value));
+  let g = '';
+  rows.forEach((r, i) => {
+    const y = i * rowH + 6, w = Math.max(0, (r.value / (r.max ?? max)) * (W - L - R)), bh = 18;
+    g += `<text x="${L - 8}" y="${y + bh/2 + 4}" text-anchor="end">${esc(r.label)}</text>`;
+    g += `<rect x="${L}" y="${y}" width="${W - L - R}" height="${bh}" fill="var(--grid)" rx="4"/>`;
+    g += `<path d="M${L},${y} h${Math.max(w-4,0)} a4,4 0 0 1 4,4 v${bh-8} a4,4 0 0 1 -4,4 h-${Math.max(w-4,0)} z" fill="var(--series-1)"/>`;
+    g += `<text class="lbl" x="${L + (W-L-R) + 8}" y="${y + bh/2 + 4}">${esc(r.text ?? (r.value + unit))}</text>`;
+    g += `<rect class="hit" x="0" y="${y-4}" width="${W}" height="${rowH}" data-tip="${esc(r.tip || (r.label + ': ' + (r.text ?? r.value + unit)))}"/>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}">${g}</svg>`;
+}
+// 세로 막대 (단일 시리즈): rows = [{label, value}]
+function colChart(rows){
+  const W = 520, H = 190, L = 36, B = 28, T = 10, max = niceMax(Math.max(1, ...rows.map(r => r.value)));
+  const slot = (W - L - 10) / rows.length, bw = Math.min(24, slot * .6);
+  let g = '';
+  [0, .5, 1].forEach(f => { const y = T + (H - T - B) * (1 - f); g += `<line class="grid" x1="${L}" x2="${W-10}" y1="${y}" y2="${y}"/><text x="${L-6}" y="${y+4}" text-anchor="end">${Math.round(max*f)}</text>`; });
+  rows.forEach((r, i) => {
+    const x = L + slot * i + (slot - bw) / 2, h = (r.value / max) * (H - T - B), y = H - B - h;
+    if(h > 0) g += `<path d="M${x},${H-B} v-${Math.max(h-4,0)} a4,4 0 0 1 4,-4 h${bw-8} a4,4 0 0 1 4,4 v${Math.max(h-4,0)} z" fill="var(--series-1)"/>`;
+    g += `<text class="lbl" x="${x + bw/2}" y="${y - 5}" text-anchor="middle">${r.value}</text>`;
+    g += `<text x="${x + bw/2}" y="${H - 8}" text-anchor="middle">${esc(r.label)}</text>`;
+    g += `<rect class="hit" x="${L + slot*i}" y="${T}" width="${slot}" height="${H-T-B}" data-tip="${esc(r.label + ': ' + r.value + '회')}"/>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}">${g}</svg>`;
+}
+// 선 그래프 (2 시리즈 + 크로스헤어 툴팁): days = [{day, scans, views}]
+function lineChart(days){
+  const W = 1040, H = 220, L = 40, R = 30, B = 28, T = 12, n = days.length;
+  const max = niceMax(Math.max(1, ...days.flatMap(d => [d.scans, d.views])));
+  const x = i => n === 1 ? (L + (W-L-R)/2) : L + (W - L - R) * i / (n - 1), y = v => T + (H - T - B) * (1 - v / max);
+  let g = '';
+  [0, .5, 1].forEach(f => { const yy = T + (H - T - B) * (1 - f); g += `<line class="grid" x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}"/><text x="${L-6}" y="${yy+4}" text-anchor="end">${Math.round(max*f)}</text>`; });
+  const step = Math.max(1, Math.ceil(n / 16));
+  days.forEach((d, i) => { if(i % step === 0 || i === n-1) g += `<text x="${x(i)}" y="${H-8}" text-anchor="middle">${d.day.slice(5).replace('-','/')}</text>`; });
+  [['scans','--series-1'],['views','--series-2']].forEach(([k, c]) => {
+    const pts = days.map((d, i) => `${x(i)},${y(d[k])}`).join(' ');
+    g += `<polyline points="${pts}" fill="none" stroke="var(${c})" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const last = days[n-1]; g += `<circle cx="${x(n-1)}" cy="${y(last[k])}" r="4" fill="var(${c})" stroke="var(--surface-1)" stroke-width="2"/>`;
+    g += `<text class="lbl" x="${x(n-1) + 7}" y="${y(last[k]) + 4}">${last[k]}</text>`;
+  });
+  g += `<line id="xh" class="grid" y1="${T}" y2="${H-B}" x1="-10" x2="-10" stroke="var(--text-muted)"/>`;
+  days.forEach((d, i) => { const x0 = n === 1 ? L : (i === 0 ? L : (x(i-1)+x(i))/2), x1 = n === 1 ? W-R : (i === n-1 ? W-R : (x(i)+x(i+1))/2);
+    g += `<rect class="hit" x="${x0}" y="${T}" width="${x1-x0}" height="${H-T-B}" data-x="${x(i)}" data-tip="${esc(d.day)}&lt;br&gt;QR 스캔 ${d.scans} · 섹션 열람 ${d.views}"/>`; });
+  return `<svg viewBox="0 0 ${W} ${H}">${g}</svg>`;
+}
+function wireTips(root){
+  root.querySelectorAll('.hit').forEach(h => {
+    h.addEventListener('mousemove', e => { tipShow(e, h.dataset.tip.replace(/&lt;br&gt;/g,'<br>')); const xh = h.closest('svg').querySelector('#xh'); if(xh && h.dataset.x){ xh.setAttribute('x1', h.dataset.x); xh.setAttribute('x2', h.dataset.x); } });
+    h.addEventListener('mouseleave', () => { tipHide(); const xh = h.closest('svg').querySelector('#xh'); if(xh){ xh.setAttribute('x1', -10); xh.setAttribute('x2', -10); } });
+  });
+}
+async function renderDashCharts(ls){
+  const box = $('#dash-charts'); if(!box) return;
+  const sel = DASH.openLine ? ls.find(r => r.line_id === DASH.openLine) : null;
+  const scope = sel ? `${sel.line_code} ${sel.line_name}` : '담당 라인 전체';
+  const { data: days } = await sb.rpc('daily_view_counts', { p_since: sinceISO(), p_line: DASH.openLine });
+  const secRows = [['안전','v_safety'],['표준작업','v_sop'],['자주검사','v_inspection'],['품질','v_quality'],['이상조치','v_abnormal']]
+    .map(([label, k]) => ({ label, value: (sel ? [sel] : ls).reduce((a, r) => a + (+r[k] || 0), 0) }));
+  const ratioRows = ls.map(r => ({ label: r.line_code, value: pct(r.workers_viewed, r.workers_registered), max: 100, text: `${pct(r.workers_viewed, r.workers_registered)}% (${r.workers_viewed}/${r.workers_registered})`, tip: `${r.line_code} ${r.line_name}: 열람 ${r.workers_viewed}명 / 등록 ${r.workers_registered}명` }));
+  box.innerHTML = `<div class="charts">
+    <div class="chart"><h3>라인별 열람 작업자 비율</h3><div class="sub">등록 작업자 중 기간 내 열람한 비율</div>${ratioRows.length ? hbarChart(ratioRows) : '<p class="muted">데이터 없음</p>'}</div>
+    <div class="chart"><h3>섹션별 열람 수</h3><div class="sub">${esc(scope)}</div>${colChart(secRows)}</div>
+    <div class="chart" style="grid-column:1/-1"><h3>일별 열람 추이</h3><div class="sub">${esc(scope)}</div>
+      <div class="legend"><span><i style="background:var(--series-1)"></i>QR 스캔</span><span><i style="background:var(--series-2)"></i>섹션 열람</span></div>
+      ${(days||[]).length ? lineChart(days) : '<p class="muted">데이터 없음</p>'}</div></div>`;
+  wireTips(box);
+}
+async function renderLineDetail(){
+  const since = sinceISO(), lid = DASH.openLine, l = lines.find(x=>x.id===lid);
+  const [{ data: eq }, { data: un }] = await Promise.all([ sb.rpc('equipment_view_stats', { p_line: lid, p_since: since }), sb.rpc('line_unviewed_workers', { p_line: lid, p_since: since }) ]);
+  $('#dash-line').innerHTML = `<div style="margin-top:14px;padding-top:12px;border-top:2px solid var(--line)"><h2>${esc(l?.code||'')} ${esc(l?.name||'')} — 설비별</h2>
+    <div class="grid2"><div><table><tr><th>설비</th><th>게시</th><th>열람 작업자</th><th>QR 스캔</th><th>열람 수</th><th>최근 열람</th></tr>
+      ${(eq||[]).map(e => `<tr><td><b>${esc(e.code)}</b> ${esc(e.name)}<div class="muted">${esc(e.process_name||'')}</div></td><td><span class="badge ${e.published_sections==5?'pub':''}">${e.published_sections}/5</span></td><td>${e.workers_viewed}</td><td>${e.scans}</td><td><b>${e.views}</b>${e.views===0&&e.published_sections>0?' <span class="badge arch">열람 없음</span>':''}</td><td class="muted">${fmt(e.last_viewed_at)||'—'}</td></tr>`).join('') || '<tr><td colspan=6 class="muted">설비 없음</td></tr>'}</table></div>
+    <div><h3 style="margin:0 0 6px;font-size:14px">미열람 작업자 (${(un||[]).length}명)</h3>
+      ${(un||[]).length ? `<table><tr><th>사번</th><th>이름</th><th>마지막 열람</th></tr>${un.map(w => `<tr><td>${esc(w.employee_no)}</td><td>${esc(w.name)}</td><td class="muted">${fmt(w.last_viewed_at)||'기록 없음'}</td></tr>`).join('')}</table>` : '<p class="muted">이 기간에 모든 등록 작업자가 열람했습니다.</p>'}</div></div></div>`;
+}
+
+// =============================== 라인 · 설비 ===============================
+PAGES.org = async () => {
+  await loadOrg();
+  const isAdmin = me.role === 'admin';
+  $('#main').innerHTML = `<h1>라인 · 설비</h1>
+    <div class="grid2">
+      <div class="card"><h2>공장 · 라인</h2>
+        ${isAdmin ? `<div class="row" style="margin-bottom:10px"><input type="text" id="p-name" placeholder="공장명" style="width:160px"><button class="btn sm" onclick="addPlant()">공장 추가</button></div>` : ''}
+        ${plants.map(p => `<div style="margin-bottom:12px"><b>🏭 ${esc(p.name)}</b> ${me.can_delete?`<button class="btn sm danger" style="margin-left:8px" onclick="deleteTarget('plant','${p.id}','${esc(p.name)}','공장 ${esc(p.name)}')">삭제</button>`:''}
+          <table>${lines.filter(l => l.plant_id===p.id).map(l => `<tr><td style="width:70px"><b>${esc(l.code)}</b></td><td>${esc(l.name)} ${canEdit(l.id)?'<span class="badge pub">담당</span>':''}</td>
+            <td style="text-align:right;white-space:nowrap">${isAdmin?`<button class="btn sm sec" onclick="editLine('${l.id}')">수정</button>`:''} ${me.can_delete?`<button class="btn sm danger" onclick="deleteTarget('line','${l.id}','${esc(l.code)}','라인 ${esc(l.code)} ${esc(l.name)}')">삭제</button>`:''}</td></tr>`).join('')}</table>
+          ${isAdmin ? `<div class="row" style="margin-top:6px"><input type="text" id="l-code-${p.id}" placeholder="코드 (GPF)" style="width:90px"><input type="text" id="l-name-${p.id}" placeholder="라인명" style="width:180px"><button class="btn sm" onclick="addLine('${p.id}')">라인 추가</button></div>` : ''}
+        </div>`).join('') || '<p class="muted">공장을 먼저 추가하세요.</p>'}
+      </div>
+      <div class="card"><h2>설비 (공정)</h2>
+        ${me.can_delete ? '' : '<p class="muted">삭제는 "삭제 권한"이 있는 계정에서만 할 수 있습니다 (편집자 계정 메뉴에서 관리자가 부여). 쓰지 않는 설비는 "비활성"으로 두세요.</p>'}
+        <p class="muted">설비코드는 QR코드에 들어가는 값입니다. 한 번 정하면 바꾸지 마세요 (예: GPF-OP10 = 라인코드-공정).</p>
+        <div class="row" style="margin-bottom:10px">
+          <select id="e-line" style="width:170px">${editableLines().map(l => `<option value="${l.id}">${esc(l.code)} ${esc(l.name)}</option>`).join('')}</select>
+          <input type="text" id="e-code" placeholder="설비코드" style="width:110px">
+          <input type="text" id="e-name" placeholder="설비명" style="width:140px">
+          <input type="text" id="e-proc" placeholder="공정명" style="width:140px">
+          <button class="btn sm" onclick="addEquipment()">추가</button>
+        </div>
+        <table><tr><th>라인</th><th>코드</th><th>설비명</th><th>공정</th><th></th></tr>
+        ${equipment.filter(e => canEdit(e.line_id)).map(e => `<tr style="${e.active?'':'opacity:.5'}"><td>${esc(lineName(e.line_id))}</td><td><b>${esc(e.code)}</b></td><td>${esc(e.name)}</td><td>${esc(e.process_name||'')}</td>
+          <td style="white-space:nowrap"><button class="btn sm sec" onclick="editEquipment('${e.id}')">수정</button> <button class="btn sm sec" onclick="toggleEquipment('${e.id}',${!e.active})">${e.active?'비활성':'활성'}</button> ${me.can_delete?`<button class="btn sm danger" onclick="deleteTarget('equipment','${e.id}','${esc(e.code)}','설비 ${esc(e.code)} ${esc(e.name)}')">삭제</button>`:''}</td></tr>`).join('')}
+        </table></div></div>`;
+};
+async function addPlant(){ const name = $('#p-name').value.trim(); if(!name) return; const { error } = await sb.from('plants').insert({ name }); error ? toast(error.message) : go('org'); }
+async function addLine(pid){ const code=$(`#l-code-${pid}`).value.trim(), name=$(`#l-name-${pid}`).value.trim(); if(!code||!name) return; const { error } = await sb.from('lines').insert({ plant_id:pid, code, name, sort: lines.length }); error ? toast(error.message) : go('org'); }
+async function editLine(id){ const l = lines.find(x=>x.id===id); const name = await ask('라인명', l.name); if(name===null) return; const { error } = await sb.from('lines').update({ name }).eq('id', id); error ? toast(error.message) : go('org'); }
+async function addEquipment(){
+  const line_id=$('#e-line').value, code=$('#e-code').value.trim().toUpperCase(), name=$('#e-name').value.trim(), process_name=$('#e-proc').value.trim();
+  if(!line_id||!code||!name) return toast('라인, 코드, 설비명은 필수입니다');
+  const { error } = await sb.from('equipment').insert({ line_id, code, name, process_name, sort: equipment.length });
+  error ? toast(error.message.includes('duplicate') ? '이미 있는 설비코드입니다' : error.message) : go('org');
+}
+async function editEquipment(id){ const e = equipment.find(x=>x.id===id); const name = await ask('설비명', e.name); if(name===null) return; const process_name = await ask('공정명', e.process_name||''); if(process_name===null) return; const { error } = await sb.from('equipment').update({ name, process_name }).eq('id', id); error ? toast(error.message) : go('org'); }
+async function deleteTarget(kind, id, code, label){
+  const { data: pv } = await sb.rpc('delete_preview', { p_kind: kind, p_id: id });
+  const parts = []; if(pv?.lines !== undefined) parts.push(`라인 ${pv.lines}개`); if(pv?.equipment !== undefined) parts.push(`설비 ${pv.equipment}개`); if(pv?.standards !== undefined) parts.push(`표준 ${pv.standards}건(게시본·초안·이전 버전 포함)`);
+  modal(`<h2 style="color:var(--nok)">⚠ ${esc(label)} 삭제</h2>
+    <p>함께 삭제됨: <b>${parts.join(', ') || '없음'}</b>. 업로드된 사진·영상 파일은 저장소에 남고, 열람 로그는 설비 정보만 비워진 채 유지됩니다.</p>
+    <p><b>되돌릴 수 없습니다.</b> 삭제하려면 아래에 <code style="background:#eee;padding:1px 6px;border-radius:4px">${esc(code)}</code> 를 똑같이 입력하세요.</p>
+    <input type="text" id="del-confirm" placeholder="${esc(code)}" autocomplete="off">
+    <div style="margin-top:12px;text-align:right"><button class="btn sec" onclick="closeModal()">취소</button> <button class="btn danger" id="del-go" disabled>영구 삭제</button></div>`, true);
+  const inp = $('#del-confirm'), go_ = $('#del-go');
+  inp.addEventListener('input', () => go_.disabled = inp.value.trim() !== code);
+  go_.onclick = async () => {
+    go_.disabled = true;
+    const { data, error } = await sb.rpc('delete_target', { p_kind: kind, p_id: id, p_confirm: inp.value.trim() });
+    closeModal();
+    if(error || !data?.ok) return toast('삭제 실패: ' + (error?.message || { forbidden:'삭제 권한이 없습니다', confirm_mismatch:'입력한 코드가 다릅니다', not_found:'이미 삭제됨' }[data?.error] || data?.error));
+    toast(`${label} 삭제됨 (변경 이력에 기록)`); await loadOrg(); go('org');
+  };
+  setTimeout(() => inp.focus(), 50);
+}
+async function toggleEquipment(id, active){ const { error } = await sb.from('equipment').update({ active }).eq('id', id); error ? toast(error.message) : go('org'); }
+
+// =============================== 표준 편집 ===============================
+// 섹션별 입력 스키마: 작업자 앱이 읽는 JSON 구조와 1:1
+const SCHEMA = {
+  sop: [
+    { key:'full_video', label:'전체 공정 작업 영상 (처음~끝) — 탭 맨 위에 표시', type:'object', fields:[ {k:'title',l:'영상 제목 (예: OP30 전체 작업 1분 40초)'}, {k:'path',l:'영상 파일 (mp4, 720p 권장)',t:'video'} ] },
+    { key:'videos', label:'추가 영상 (구간별, 선택)', type:'list', fields:[ {k:'title',l:'제목'}, {k:'path',l:'영상 파일',t:'video'} ] },
+    { key:'steps', label:'작업 순서', type:'list', fields:[ {k:'text',l:'작업 내용',t:'textarea',wide:1}, {k:'key_point',l:'급소 (핵심 포인트)'}, {k:'image_path',l:'참고 사진 (텍스트 옆에 1장 표시)',t:'image'} ] },
+    { key:'notes', label:'참고 사항', type:'textarea' },
+  ],
+  inspection: [
+    { key:'items', label:'자주검사 항목', type:'list', fields:[ {k:'name',l:'검사 항목'}, {k:'interval',l:'주기'}, {k:'method',l:'방법 (육안/게이지 등)'},
+      {k:'ok.image_path',l:'OK 사진',t:'image'}, {k:'ok.desc',l:'OK 기준',t:'textarea'}, {k:'nok.image_path',l:'NOK 사진',t:'image'}, {k:'nok.desc',l:'NOK 기준',t:'textarea'}, {k:'nok_action',l:'NOK 시 조치',wide:1} ] },
+  ],
+  safety: [
+    { key:'ppe', label:'개인보호구', type:'list', fields:[ {k:'name',l:'보호구'}, {k:'icon',l:'아이콘(이모지, 사진 없을 때)'}, {k:'image_path',l:'사진',t:'image'} ] },
+    { key:'hazards', label:'위험 요인', type:'strings' },
+    { key:'rules', label:'안전 수칙', type:'strings' },
+  ],
+  quality: [
+    { key:'points', label:'품질 관리 포인트', type:'list', fields:[ {k:'text',l:'내용',t:'textarea',wide:1}, {k:'spec',l:'기준/규격'}, {k:'image_path',l:'사진',t:'image'} ] },
+    { key:'defects', label:'주요 불량 유형', type:'list', fields:[ {k:'name',l:'불량명'}, {k:'cause',l:'원인'}, {k:'action',l:'조치'}, {k:'image_path',l:'사진',t:'image'} ] },
+  ],
+  abnormal: [
+    { key:'cases', label:'이상 발생 시 조치', type:'list', fields:[ {k:'symptom',l:'증상/상황'}, {k:'stop_line',l:'라인 정지 필요',t:'check'}, {k:'action',l:'조치 순서 (줄바꿈으로 구분)',t:'textarea',wide:1}, {k:'contact',l:'연락 대상'} ] },
+    { key:'contacts', label:'비상 연락처', type:'list', fields:[ {k:'role',l:'역할'}, {k:'name',l:'이름'}, {k:'phone',l:'전화번호'} ] },
+  ],
+};
+const getP = (o, path) => path.split('.').reduce((a,k) => a?.[k], o);
+const setP = (o, path, v) => { const ks = path.split('.'); let c = o; ks.slice(0,-1).forEach(k => c = (c[k] ??= {})); c[ks.at(-1)] = v; };
+
+let ED = { eqId:null, section:'safety', draft:null, published:null, history:[], content:{}, translations:{} };
+
+async function openEditor(eqId){ ED.eqId = eqId; go('edit'); }
+PAGES.edit = async () => {
+  const eqs = equipment.filter(e => canEdit(e.line_id) && e.active);
+  if(!ED.eqId || !eqs.find(e=>e.id===ED.eqId)) ED.eqId = eqs[0]?.id || null;
+  $('#main').innerHTML = `<h1>표준 편집</h1>
+    <div class="card"><div class="row"><label>설비</label>
+      <select id="ed-eq" style="width:360px">${eqs.map(e => `<option value="${e.id}" ${e.id===ED.eqId?'selected':''}>[${esc(lineName(e.line_id))}] ${esc(e.code)} · ${esc(e.name)} · ${esc(e.process_name||'')}</option>`).join('')}</select>
+      <span class="muted">작업자 앱 미리보기: <a target="_blank" href="${esc(WORKER_BASE)}?demo=1">샘플 화면</a></span></div></div>
+    <div class="tabs" id="ed-tabs">${Object.entries(SECTIONS).map(([k,v]) => `<button data-s="${k}" class="${k===ED.section?'on':''}">${v} <span class="badge" id="ed-b-${k}"></span></button>`).join('')}</div>
+    <div id="ed-body"></div>`;
+  if(!ED.eqId){ $('#ed-body').innerHTML = '<p class="muted">편집 가능한 설비가 없습니다.</p>'; return; }
+  $('#ed-eq').onchange = e => { ED.eqId = e.target.value; loadSection(); };
+  $('#ed-tabs').onclick = e => { const b = e.target.closest('button'); if(b){ ED.section = b.dataset.s; document.querySelectorAll('#ed-tabs button').forEach(x=>x.classList.toggle('on', x===b)); loadSection(); } };
+  loadSection();
+};
+async function loadSection(){
+  const { data } = await sb.from('standards').select('*').eq('equipment_id', ED.eqId).order('version', { ascending:false });
+  const all = data||[];
+  Object.keys(SECTIONS).forEach(s => { const b = $(`#ed-b-${s}`); const pub = all.find(r=>r.section===s&&r.status==='published'); const dr = all.find(r=>r.section===s&&r.status==='draft'); b.className = 'badge ' + (pub?'pub':dr?'draft':''); b.textContent = pub ? `v${pub.version}` : dr ? '초안' : '없음'; });
+  const rows = all.filter(r => r.section === ED.section);
+  ED.draft = rows.find(r => r.status==='draft') || null;
+  ED.published = rows.find(r => r.status==='published') || null;
+  ED.history = rows.filter(r => r.status==='archived');
+  ED.content = JSON.parse(JSON.stringify((ED.draft || ED.published)?.content || {}));
+  ED.translations = JSON.parse(JSON.stringify((ED.draft || ED.published)?.translations || {}));
+  renderEditor();
+}
+function renderEditor(){
+  const eq = equipment.find(e=>e.id===ED.eqId);
+  const pubOK = canPublish(eq.line_id);
+  const status = ED.draft ? `<span class="badge draft">초안 수정 중</span> <span class="muted">마지막 저장 ${fmt(ED.draft.updated_at)}</span>` : ED.published ? `<span class="badge pub">게시본 v${ED.published.version}</span> <span class="muted">${fmt(ED.published.published_at)} · 수정하면 새 초안이 만들어집니다</span>` : `<span class="badge">아직 없음</span>`;
+  $('#ed-body').innerHTML = `<div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:10px"><div><b>${SECTIONS[ED.section]}</b> &nbsp; ${status}</div>
+      <div class="row">${ED.history.length ? `<button class="btn sm sec" onclick="showHistory()">이전 버전 (${ED.history.length})</button>` : ''}</div></div>
+    <div id="fe"></div>
+    <div class="fe-group" id="tr-box" style="background:#f0f7ff"><h3>🌐 번역 (10개 언어) <span id="tr-status" class="muted" style="font-weight:400"></span></h3>
+      <div class="row"><button class="btn sm" onclick="genTranslations()">번역 생성 / 갱신</button>
+        <select id="tr-lang" style="width:140px">${LANGS.map(([c,n]) => `<option value="${c}">${n}</option>`).join('')}</select>
+        <button class="btn sm sec" onclick="reviewTranslation()">검토 · 수정</button>
+        <span class="muted">원문(한국어)을 고친 뒤에는 "번역 생성 / 갱신"을 다시 누르세요. 작업자 앱에서 번역이 없는 언어는 한국어로 표시됩니다.</span></div></div>
+    <div class="sticky-bar noprint">
+      <button class="btn sec" onclick="saveDraft()">💾 초안 저장</button>
+      <button class="btn ok" onclick="publish()" ${pubOK?'':'disabled title="라인 책임자/관리자만 게시할 수 있습니다"'}>🚀 게시 (작업자에게 공개)</button>
+      ${ED.draft ? `<button class="btn sm danger" onclick="discardDraft()">초안 삭제</button>` : ''}
+      <span class="muted" id="fe-msg"></span>
+    </div></div>`;
+  renderForm(); loadThumbs(); updateTrStatus();
+}
+function renderForm(){
+  const c = ED.content;
+  $('#fe').innerHTML = SCHEMA[ED.section].map(g => {
+    if(g.type === 'textarea') return `<div class="fe-group"><h3>${g.label}</h3><textarea data-key="${g.key}">${esc(c[g.key]||'')}</textarea></div>`;
+    if(g.type === 'object'){ const o = c[g.key]||{}; return `<div class="fe-group"><h3>${g.label}</h3><div class="fe-fields">${g.fields.map(f => feField(`${g.key}.${f.k}`, f, getP(o, f.k))).join('')}</div></div>`; }
+    if(g.type === 'strings'){ const arr = c[g.key]||[]; return `<div class="fe-group"><h3>${g.label}<button class="btn sm" onclick="feAdd('${g.key}')">+ 추가</button></h3>
+      ${arr.map((v,i) => `<div class="fe-item" style="padding-right:110px"><input type="text" data-key="${g.key}.${i}" value="${esc(v)}"><div class="tools">${feTools(g.key,i,arr.length)}</div></div>`).join('') || '<p class="muted">항목이 없습니다.</p>'}</div>`; }
+    const arr = c[g.key]||[];
+    return `<div class="fe-group"><h3>${g.label}<button class="btn sm" onclick="feAdd('${g.key}')">+ 추가</button></h3>
+      ${arr.map((it,i) => `<div class="fe-item"><div class="idx">#${i+1}</div><div class="tools">${feTools(g.key,i,arr.length)}</div>
+        <div class="fe-fields">${g.fields.map(f => feField(`${g.key}.${i}.${f.k}`, f, getP(it, f.k))).join('')}</div></div>`).join('') || '<p class="muted">항목이 없습니다. "+ 추가"를 누르세요.</p>'}</div>`;
+  }).join('');
+  $('#fe').querySelectorAll('[data-key]').forEach(el => el.addEventListener('change', () => { feCommit(el); }));
+}
+const feTools = (key,i,n) => `<button title="위로" onclick="feMove('${key}',${i},-1)" ${i===0?'disabled':''}>↑</button><button title="아래로" onclick="feMove('${key}',${i},1)" ${i===n-1?'disabled':''}>↓</button><button title="삭제" onclick="feDel('${key}',${i})">✕</button>`;
+function feField(path, f, v){
+  const wide = f.wide ? 'class="wide"' : '';
+  if(f.t === 'textarea') return `<div ${wide}><label class="f">${f.l}</label><textarea data-key="${path}">${esc(v||'')}</textarea></div>`;
+  if(f.t === 'check') return `<div><label class="f">${f.l}</label><label><input type="checkbox" data-key="${path}" ${v?'checked':''}> 예</label></div>`;
+  if(f.t === 'image' || f.t === 'video'){
+    const id = 'fb' + path.replace(/\W/g,'_');
+    return `<div><label class="f">${f.l}</label><div class="file-box" id="${id}">${v ? `<span class="fn" title="${esc(v)}">${esc(v.split('/').pop())}</span><button class="btn sm sec" onclick="feClearFile('${path}')">제거</button>` : ''}
+      <label class="btn sm sec" style="cursor:pointer">${v?'교체':'업로드'}<input type="file" accept="${f.t==='image'?'image/*':'video/*'}" style="display:none" onchange="feUpload(this,'${path}','${f.t}')"></label></div>
+      ${v && f.t==='image' ? `<img id="${id}-img" style="width:120px;height:90px;object-fit:cover;border-radius:6px;margin-top:4px;background:#eee" data-path="${esc(v)}">` : ''}</div>`;
+  }
+  return `<div ${wide}><label class="f">${f.l}</label><input type="text" data-key="${path}" value="${esc(v||'')}"></div>`;
+}
+function feCommit(el){ const v = el.type === 'checkbox' ? el.checked : el.value; setP(ED.content, el.dataset.key, v); }
+function feCommitAll(){ $('#fe').querySelectorAll('[data-key]').forEach(feCommit); }
+function feAdd(key){ feCommitAll(); const g = SCHEMA[ED.section].find(x=>x.key===key); (ED.content[key] ??= []).push(g.type==='strings' ? '' : {}); renderForm(); }
+function feDel(key,i){ feCommitAll(); ED.content[key].splice(i,1); renderForm(); }
+function feMove(key,i,d){ feCommitAll(); const a = ED.content[key]; [a[i],a[i+d]] = [a[i+d],a[i]]; renderForm(); }
+function feClearFile(path){ feCommitAll(); setP(ED.content, path, ''); renderForm(); }
+async function feUpload(input, path, kind){
+  const file = input.files[0]; if(!file) return;
+  feCommitAll();
+  const limit = kind === 'video' ? 500 : 15;
+  if(file.size > limit*1024*1024) return toast(`${limit}MB 이하 파일만 올릴 수 있습니다 (Supabase 요금제 한도도 확인)`);
+  const eq = equipment.find(e=>e.id===ED.eqId);
+  const safe = file.name.replace(/[^\w.\-가-힣]/g,'_');
+  const dest = `${eq.code}/${ED.section}/${Date.now()}_${safe}`;
+  $('#fe-msg').textContent = `업로드 중… ${file.name} (${(file.size/1048576).toFixed(1)}MB)`;
+  const { error } = await sb.storage.from('media').upload(dest, file, { upsert:false, contentType: file.type });
+  if(error){ $('#fe-msg').textContent = ''; return toast('업로드 실패: ' + error.message); }
+  setP(ED.content, path, dest);
+  $('#fe-msg').textContent = '업로드 완료 — 초안 저장을 눌러야 반영됩니다';
+  renderForm(); loadThumbs();
+}
+async function loadThumbs(){
+  for(const img of $('#fe').querySelectorAll('img[data-path]')){
+    const { data } = await sb.storage.from('media').createSignedUrl(img.dataset.path, 600);
+    if(data) img.src = data.signedUrl;
+  }
+}
+async function saveDraft(silent){
+  feCommitAll();
+  let res;
+  if(ED.draft) res = await sb.from('standards').update({ content: ED.content, translations: ED.translations }).eq('id', ED.draft.id).select().single();
+  else res = await sb.from('standards').insert({ equipment_id: ED.eqId, section: ED.section, content: ED.content, translations: ED.translations, created_by: me.id }).select().single();
+  if(res.error){ toast('저장 실패: ' + res.error.message); return false; }
+  ED.draft = res.data; if(!silent){ toast('초안 저장됨'); renderEditor(); loadThumbs(); }
+  return true;
+}
+async function publish(){
+  if(!await saveDraft(true)) return;
+  const note = await ask('개정 사유 (선택)', ED.published ? '' : '최초 게시'); if(note === null) return;
+  const { data, error } = await sb.rpc('publish_standard', { p_draft_id: ED.draft.id, p_note: note });
+  if(error || !data.ok) return toast('게시 실패: ' + (error?.message || data.error));
+  toast(`v${data.version} 게시 완료 — 작업자 앱에 바로 반영됩니다`); loadSection();
+}
+async function discardDraft(){ if(!await confirmBox('초안을 삭제할까요? 게시본은 유지됩니다.')) return; await sb.from('standards').delete().eq('id', ED.draft.id); loadSection(); }
+function showHistory(){
+  modal(`<h2>이전 버전 — ${SECTIONS[ED.section]}</h2><table><tr><th>버전</th><th>게시일</th><th>개정 사유</th><th></th></tr>
+    ${ED.history.map(h => `<tr><td>v${h.version}</td><td>${fmt(h.published_at)}</td><td>${esc(h.change_note||'')}</td><td><button class="btn sm sec" onclick="restoreVersion('${h.id}')">초안으로 복원</button></td></tr>`).join('')}</table>`);
+}
+async function restoreVersion(id){ const h = ED.history.find(x=>x.id===id); ED.content = JSON.parse(JSON.stringify(h.content)); closeModal(); if(ED.draft) await sb.from('standards').update({ content: ED.content }).eq('id', ED.draft.id); else await saveDraft(true); toast(`v${h.version} 내용을 초안으로 복원했습니다`); loadSection(); }
+
+// ---- 번역 ----
+function collectStrings(obj, path=[], out=[]){
+  if(Array.isArray(obj)) obj.forEach((v,i) => collectStrings(v, [...path, String(i)], out));
+  else if(obj && typeof obj === 'object'){ for(const [k,v] of Object.entries(obj)){ if(SKIP_KEY.test(k)) continue; collectStrings(v, [...path,k], out); } }
+  else if(typeof obj === 'string' && obj.trim()) out.push({ path, text: obj });
+  return out;
+}
+async function srcHash(){
+  const texts = collectStrings(ED.content).map(i=>i.text).join('\u0001');
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texts));
+  return Array.from(new Uint8Array(buf)).slice(0,8).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function updateTrStatus(){
+  const el = $('#tr-status'); if(!el) return;
+  feCommitAll();
+  const have = LANGS.filter(([c]) => ED.translations[c]).length;
+  if(!have){ el.innerHTML = '<span class="badge">번역 없음</span>'; return; }
+  const fresh = ED.translations.__hash === await srcHash();
+  el.innerHTML = `<span class="badge ${fresh?'pub':'draft'}">${have}/${LANGS.length} 언어 · ${fresh ? '원문과 일치' : '원문이 바뀜 — 갱신 필요'}</span> <span class="muted">${fmt(ED.translations.__at)}</span>`;
+}
+async function genTranslations(){
+  if(!await saveDraft(true)) return;
+  const n = collectStrings(ED.content).length;
+  if(!n) return toast('번역할 문장이 없습니다');
+  $('#fe-msg').textContent = `번역 중… (${n}개 문장 × ${LANGS.length}개 언어, 1~2분)`;
+  const { data, error } = await sb.functions.invoke('translate-standard', { body: { draft_id: ED.draft.id } });
+  $('#fe-msg').textContent = '';
+  if(error || !data?.ok){ return toast('번역 실패: ' + (error?.message || data?.error || '') + ' — Edge Function 배포와 ANTHROPIC_API_KEY 설정을 확인하세요'); }
+  const failed = Object.keys(data.failed||{});
+  toast(`번역 완료: ${data.done.length}개 언어${failed.length ? ' / 실패: ' + failed.join(',') : ''}`);
+  loadSection();
+}
+function reviewTranslation(){
+  const lang = $('#tr-lang').value, name = LANGS.find(([c])=>c===lang)[1];
+  feCommitAll();
+  const items = collectStrings(ED.content);
+  const tr = ED.translations[lang];
+  if(!tr) return toast(`${name} 번역이 아직 없습니다. 먼저 "번역 생성"을 누르세요`);
+  modal(`<h2>번역 검토 — ${name}</h2><p class="muted">왼쪽 원문을 보고 오른쪽을 고친 뒤 저장하세요. 저장하면 초안에 바로 반영됩니다.</p>
+    <div style="max-height:60vh;overflow:auto">${items.map((it,i) => `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:8px 0;border-top:1px solid var(--line)">
+      <div class="muted" style="white-space:pre-wrap">${esc(it.text)}</div><textarea data-tr="${i}" style="min-height:48px">${esc(getP(tr, it.path.join('.'))||'')}</textarea></div>`).join('')}</div>
+    <div style="margin-top:10px"><button class="btn" onclick="saveTranslation('${lang}')">저장</button></div>`);
+  $('#modal .modal').style.width = '900px';
+}
+async function saveTranslation(lang){
+  const items = collectStrings(ED.content);
+  const tr = {};
+  document.querySelectorAll('[data-tr]').forEach(ta => { const it = items[+ta.dataset.tr]; setP(tr, it.path.join('.'), ta.value); });
+  // 배열 경로는 setP가 객체로 만들므로 원문 구조에 맞춰 배열로 변환
+  const fix = (src, t) => { if(Array.isArray(src)) return src.map((v,i)=>fix(v, t?.[i])); if(src && typeof src==='object'){ const o={}; for(const k of Object.keys(src)) if(t && t[k]!==undefined) o[k]=fix(src[k], t[k]); return o; } return t; };
+  ED.translations[lang] = fix(ED.content, tr);
+  closeModal();
+  if(await saveDraft(true)){ toast(`${lang} 번역 저장됨`); updateTrStatus(); }
+}
+
+// =============================== 작업자 · 접속코드 ===============================
+let LAST_CODE_HTML = '';
+PAGES.workers = async () => {
+  const [{ data: codes }, { data: workers }] = await Promise.all([
+    sb.from('access_codes').select('*').order('created_at', { ascending:false }).limit(200),
+    sb.from('workers').select('*').order('created_at', { ascending:false }).limit(500),
+  ]);
+  $('#main').innerHTML = `<h1>작업자 · 접속코드</h1>
+    <div class="card"><h2>접속코드 발급</h2>
+      <p class="muted">작업자 1명당 코드 1개. 작업자는 본인 휴대폰에서 최초 1회만 입력합니다. 휴대폰을 바꾸면 새 코드를 발급하세요.</p>
+      <div class="row"><input type="text" id="w-no" placeholder="사번" style="width:120px"><input type="text" id="w-name" placeholder="이름" style="width:120px">
+        <select id="w-line" style="width:200px">${editableLines().map(l => `<option value="${l.id}">${esc(l.code)} ${esc(l.name)}</option>`).join('')}</select>
+        <select id="w-days" style="width:110px"><option value="7">7일 유효</option><option value="1">1일 유효</option><option value="30">30일 유효</option></select>
+        <button class="btn" onclick="issueCode()">발급</button></div>
+      <div id="w-result" style="margin-top:10px">${LAST_CODE_HTML}</div></div>
+    <div class="grid2">
+      <div class="card"><h2>발급된 코드</h2><table><tr><th>코드</th><th>사번 / 이름</th><th>라인</th><th>상태</th><th></th></tr>
+        ${(codes||[]).map(c => { const used = !!c.used_by, exp = new Date(c.expires_at) < new Date(); return `<tr><td><b style="font-family:monospace;font-size:15px">${esc(c.code)}</b></td><td>${esc(c.employee_no)} ${esc(c.name)}</td><td>${esc(lineName(c.line_id))}</td>
+          <td>${used?`<span class="badge pub">사용됨 ${fmt(c.used_at)}</span>`:exp?`<span class="badge arch">만료</span>`:`<span class="badge draft">미사용 · ~${fmt(c.expires_at)}</span>`}</td>
+          <td>${!used?`<button class="btn sm sec" onclick="delCode('${c.code}')">삭제</button>`:''}</td></tr>`; }).join('') || '<tr><td colspan=5 class="muted">없음</td></tr>'}</table></div>
+      <div class="card"><h2>등록된 작업자 (휴대폰)</h2><table><tr><th>사번 / 이름</th><th>라인</th><th>세션 유효</th><th>마지막 설비</th><th></th></tr>
+        ${(workers||[]).map(w => { const valid = new Date(w.scan_valid_until) > new Date(); const eq = equipment.find(e=>e.id===w.last_equipment_id); return `<tr style="${w.blocked?'opacity:.5':''}"><td>${esc(w.employee_no)} ${esc(w.name)} ${w.blocked?'<span class="badge arch">차단</span>':''}</td><td>${esc(lineName(w.line_id))}</td>
+          <td>${valid?`<span class="badge pub">~${fmt(w.scan_valid_until)}</span>`:'<span class="badge arch">만료</span>'}</td><td>${esc(eq?.code||'')}</td>
+          <td><button class="btn sm sec" onclick="blockWorker('${w.id}',${!w.blocked})">${w.blocked?'차단 해제':'차단'}</button></td></tr>`; }).join('') || '<tr><td colspan=5 class="muted">없음</td></tr>'}</table></div>
+    </div>`;
+};
+async function issueCode(){
+  const no=$('#w-no').value.trim(), name=$('#w-name').value.trim(), line=$('#w-line').value, days=+$('#w-days').value;
+  if(!no||!name||!line) return toast('사번, 이름, 라인을 입력하세요');
+  const { data, error } = await sb.rpc('issue_access_code', { p_employee_no:no, p_name:name, p_line:line, p_days:days });
+  if(error || !data.ok) return toast('발급 실패: ' + (error?.message||data.error));
+  LAST_CODE_HTML = `<div style="background:#eef4ff;border-radius:10px;padding:14px;display:flex;gap:16px;align-items:center"><div><div class="muted">${esc(name)} (${esc(no)}) 접속코드</div><div style="font-family:monospace;font-size:34px;font-weight:800;letter-spacing:4px">${data.code}</div></div>
+    <div class="muted">작업자 휴대폰 카메라로 설비 QR을 찍은 뒤<br>이 코드를 입력하게 하세요. (${days}일 안에 입력)</div></div>`;
+  go('workers');
+}
+async function delCode(code){ await sb.from('access_codes').delete().eq('code', code); go('workers'); }
+async function blockWorker(id, blocked){ const { error } = await sb.from('workers').update({ blocked }).eq('id', id); error ? toast(error.message) : go('workers'); }
+
+// =============================== 편집자 계정 (admin) ===============================
+PAGES.users = async () => {
+  const [{ data: profiles }, { data: pls }] = await Promise.all([ sb.from('profiles').select('*').order('created_at'), sb.from('profile_lines').select('*') ]);
+  $('#main').innerHTML = `<h1>편집자 계정</h1>
+    <div class="card"><h2>계정 추가</h2>
+      <p class="muted">여기서 만든 계정으로 컨트롤타워에 로그인합니다. (Supabase Auth 설정에서 "Confirm email"을 꺼 두면 바로 로그인 가능)</p>
+      <div class="row"><input type="email" id="u-email" placeholder="이메일" style="width:220px"><input type="text" id="u-pw" placeholder="임시 비밀번호(8자+)" style="width:160px"><input type="text" id="u-name" placeholder="이름" style="width:120px">
+        <select id="u-role" style="width:140px"><option value="line_manager">라인 책임자</option><option value="author">작성자</option><option value="admin">관리자</option></select>
+        <button class="btn" onclick="createUser()">추가</button></div>
+      <div class="muted" style="margin-top:6px">라인 책임자 = 담당 라인 등록·수정·게시 / 작성자 = 담당 라인 초안만 (게시 불가) / 관리자 = 전체<br><b>삭제 권한</b> = 공장·라인·설비를 영구 삭제할 수 있는 별도 권한. 관리자라도 체크해야 삭제 가능. 꼭 필요한 1~2명에게만 주세요.</div></div>
+    <div class="card"><h2>계정 목록</h2><table><tr><th>이름</th><th>권한</th><th>담당 라인</th><th>상태</th><th></th></tr>
+      ${(profiles||[]).map(p => { const mine = (pls||[]).filter(x=>x.profile_id===p.id).map(x=>x.line_id); return `<tr style="${p.active?'':'opacity:.5'}"><td>${esc(p.name)} ${p.id===me.id?'<span class="badge">나</span>':''}</td><td><span class="badge ${p.role}">${ROLE[p.role]}</span></td>
+        <td>${p.role==='admin' ? '<span class="muted">전체</span>' : lines.map(l => `<label style="margin-right:10px;white-space:nowrap"><input type="checkbox" ${mine.includes(l.id)?'checked':''} onchange="setLine('${p.id}','${l.id}',this.checked)"> ${esc(l.code)}</label>`).join('')}</td>
+        <td>${p.active?'활성':'비활성'}<br><label style="white-space:nowrap;color:var(--nok)"><input type="checkbox" ${p.can_delete?'checked':''} onchange="setCanDelete('${p.id}',this.checked)"> 삭제 권한</label></td><td class="row"><select onchange="setRole('${p.id}',this.value)" style="width:120px"><option value="line_manager" ${p.role==='line_manager'?'selected':''}>라인 책임자</option><option value="author" ${p.role==='author'?'selected':''}>작성자</option><option value="admin" ${p.role==='admin'?'selected':''}>관리자</option></select>
+        ${p.id!==me.id?`<button class="btn sm sec" onclick="setActive('${p.id}',${!p.active})">${p.active?'비활성화':'활성화'}</button>`:''}</td></tr>`; }).join('')}</table></div>`;
+};
+async function createUser(){
+  const email=$('#u-email').value.trim(), password=$('#u-pw').value, name=$('#u-name').value.trim(), role=$('#u-role').value;
+  if(!email||password.length<8||!name) return toast('이메일, 8자 이상 비밀번호, 이름을 입력하세요');
+  // 관리자 세션을 유지하기 위해 별도 클라이언트로 가입 처리
+  const tmp = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, { auth: { persistSession:false, autoRefreshToken:false } });
+  const { data, error } = await tmp.auth.signUp({ email, password, options: { data: { name } } });
+  if(error) return toast('계정 생성 실패: ' + error.message);
+  if(!data.user) return toast('계정 생성 실패');
+  const { error: e2 } = await sb.from('profiles').insert({ id: data.user.id, name, role });
+  if(e2) return toast('프로필 저장 실패: ' + e2.message + ' (이미 가입된 이메일이면 Supabase > Authentication 에서 확인)');
+  toast('계정 추가됨 — 담당 라인을 체크하세요'); go('users');
+}
+async function setLine(pid, lid, on){ const r = on ? await sb.from('profile_lines').insert({ profile_id:pid, line_id:lid }) : await sb.from('profile_lines').delete().match({ profile_id:pid, line_id:lid }); if(r.error) toast(r.error.message); }
+async function setRole(pid, role){ const { error } = await sb.from('profiles').update({ role }).eq('id', pid); error ? toast(error.message) : go('users'); }
+async function setCanDelete(pid, on){ const { error } = await sb.from('profiles').update({ can_delete: on }).eq('id', pid); if(error) toast(error.message); else { if(pid===me.id) me.can_delete = on; toast(on ? '삭제 권한 부여됨' : '삭제 권한 해제됨'); } }
+async function setActive(pid, active){ const { error } = await sb.from('profiles').update({ active }).eq('id', pid); error ? toast(error.message) : go('users'); }
+
+// =============================== 앱 문구 · 설정 (admin) ===============================
+let TX = { lang:'en', dirty:{}, rows:{}, settings:{} };
+PAGES.texts = async () => {
+  const [{ data: st }, { data: tx }] = await Promise.all([ sb.from('app_settings').select('*'), sb.from('app_texts').select('*') ]);
+  TX.settings = Object.fromEntries((st||[]).map(r => [r.key, r.value]));
+  TX.rows = {}; (tx||[]).forEach(r => { (TX.rows[r.key] ??= {})[r.lang] = r.text; });
+  TX.dirty = {};
+  const ALL = [['ko','한국어'], ...LANGS];
+  $('#main').innerHTML = `<h1>앱 문구 · 설정</h1>
+    <div class="card"><h2>기본 설정</h2>
+      <div class="row">
+        <div><label class="f">앱 이름</label><input type="text" id="st-app_name" value="${esc(TX.settings.app_name||'')}" style="width:200px"></div>
+        <div><label class="f">공장명 (작업자 앱 상단)</label><input type="text" id="st-plant_name" value="${esc(TX.settings.plant_name||'')}" style="width:200px"></div>
+        <div><label class="f">세션 유효 시간 (시간)</label><input type="number" id="st-session_hours" value="${esc(TX.settings.session_hours||'12')}" min="1" max="72" style="width:100px"></div>
+        <div style="align-self:flex-end"><button class="btn" onclick="saveSettings()">설정 저장</button></div>
+      </div></div>
+    <div class="card"><h2>화면 문구</h2>
+      <p class="muted">작업자 앱의 탭 이름·제목·안내문입니다. 고친 뒤 <b>문구 저장</b>을 누르면 작업자가 앱을 다음에 열 때(QR 촬영 시) 바로 반영됩니다. 비워 두면 기본 문구가 쓰입니다.</p>
+      <div class="row" style="margin-bottom:10px"><label>표시 언어</label><select id="tx-lang" style="width:160px" onchange="TX.lang=this.value;renderTexts()">${ALL.map(([c,n]) => `<option value="${c}" ${c===TX.lang?'selected':''}>${n}</option>`).join('')}</select>
+        <button class="btn" onclick="saveTexts()">💾 문구 저장</button>
+        <button class="btn sec" onclick="translateTexts()">🌐 한국어 수정분 → 10개 언어 자동 번역</button>
+        <span class="muted" id="tx-msg"></span></div>
+      <div id="tx-table"></div></div>`;
+  renderTexts();
+};
+function txVal(key, lang){ return TX.dirty[key]?.[lang] ?? TX.rows[key]?.[lang] ?? ''; }
+function txDefault(key, lang){ const i = window.LANGS.findIndex(l => l.code === lang); return (window.I18N_DEFAULTS[key]||[])[i] || ''; }
+function renderTexts(){
+  const lang = TX.lang;
+  $('#tx-table').innerHTML = `<table><tr><th style="width:140px">키</th><th>한국어 (기본값 → 수정값)</th><th>${lang==='ko'?'':'선택 언어: '+ (lang) + ' (기본값 → 수정값)'}</th></tr>
+    ${window.I18N_KEYS.map(k => `<tr><td class="muted" style="font-family:monospace;font-size:12px">${k}</td>
+      <td><div class="muted" style="font-size:12px">${esc(txDefault(k,'ko'))}</div><input type="text" data-tx="${k}" data-lang="ko" value="${esc(txVal(k,'ko'))}" placeholder="(기본값 사용)"></td>
+      <td>${lang==='ko' ? '' : `<div class="muted" style="font-size:12px">${esc(txDefault(k,lang))}</div><input type="text" data-tx="${k}" data-lang="${lang}" value="${esc(txVal(k,lang))}" placeholder="(기본값 사용)">`}</td></tr>`).join('')}</table>`;
+  $('#tx-table').querySelectorAll('[data-tx]').forEach(el => el.addEventListener('input', () => { (TX.dirty[el.dataset.tx] ??= {})[el.dataset.lang] = el.value; }));
+}
+async function saveSettings(){
+  const rows = ['app_name','plant_name','session_hours'].map(k => ({ key:k, value: $('#st-'+k).value.trim(), updated_by: me.id, updated_at: new Date().toISOString() }));
+  const { error } = await sb.from('app_settings').upsert(rows);
+  error ? toast(error.message) : toast('설정 저장됨 — 작업자 앱에 다음 실행부터 반영');
+}
+async function saveTexts(){
+  const ups = [], dels = [];
+  for(const [k, langs] of Object.entries(TX.dirty)) for(const [l, v] of Object.entries(langs)) (v.trim() ? ups : dels).push({ key:k, lang:l, text:v.trim(), updated_by: me.id, updated_at: new Date().toISOString() });
+  if(ups.length){ const { error } = await sb.from('app_texts').upsert(ups); if(error) return toast(error.message); }
+  for(const d of dels){ await sb.from('app_texts').delete().match({ key:d.key, lang:d.lang }); }
+  toast(`저장됨: ${ups.length}건 수정, ${dels.length}건 기본값으로 복원`); go('texts');
+}
+async function translateTexts(){
+  // 한국어가 수정된(저장된) 키만 10개 언어로 번역해 저장
+  const keys = Object.keys(TX.rows).filter(k => TX.rows[k].ko);
+  if(!keys.length) return toast('먼저 한국어 문구를 수정해 저장하세요. 수정된 한국어 문구만 번역합니다.');
+  $('#tx-msg').textContent = `번역 중… (${keys.length}개 문구 × 10개 언어)`;
+  const { data, error } = await sb.functions.invoke('translate-standard', { body: { mode:'texts', items: keys.map(k => ({ key:k, text: TX.rows[k].ko })) } });
+  $('#tx-msg').textContent = '';
+  if(error || !data?.ok) return toast('번역 실패: ' + (error?.message || data?.error || ''));
+  toast(`번역 완료: ${data.done.length}개 언어`); go('texts');
+}
+
+// =============================== 로그 ===============================
+PAGES.logs = async () => {
+  const since = new Date(Date.now() - 7*864e5).toISOString();
+  const { data: vl } = await sb.from('view_logs').select('viewed_at,section,workers(name,employee_no),equipment(code,name,line_id)').gte('viewed_at', since).order('viewed_at', { ascending:false }).limit(300);
+  let audit = [];
+  if(me.role === 'admin'){ const { data } = await sb.from('audit_log').select('*').order('at', { ascending:false }).limit(100); audit = data||[]; }
+  const profilesMap = {}; if(me.role==='admin'){ const { data } = await sb.from('profiles').select('id,name'); (data||[]).forEach(p => profilesMap[p.id]=p.name); }
+  $('#main').innerHTML = `<h1>열람 · 변경 로그</h1>
+    <div class="card"><h2>작업자 열람 (최근 7일, 최대 300건)</h2><table><tr><th>시각</th><th>작업자</th><th>설비</th><th>본 내용</th></tr>
+      ${(vl||[]).map(r => `<tr><td class="muted">${fmt(r.viewed_at)}</td><td>${esc(r.workers?.name||'')} ${esc(r.workers?.employee_no||'')}</td><td>${esc(r.equipment?.code||'')} ${esc(r.equipment?.name||'')}</td><td>${r.section ? SECTIONS[r.section] : '<span class="badge">QR 스캔</span>'}</td></tr>`).join('') || '<tr><td colspan=4 class="muted">없음</td></tr>'}</table></div>
+    ${me.role==='admin' ? `<div class="card"><h2>변경 이력 (관리자, 최근 100건)</h2><table><tr><th>시각</th><th>누가</th><th>작업</th><th>대상</th><th>내용</th></tr>
+      ${audit.map(a => `<tr><td class="muted">${fmt(a.at)}</td><td>${esc(profilesMap[a.actor]||'')}</td><td><span class="badge">${esc(a.action)}</span></td><td>${esc(a.target_table)}</td><td class="muted" style="max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(JSON.stringify(a.detail||{}).slice(0,160))}</td></tr>`).join('')}</table></div>` : ''}`;
+};
+
+// =============================== QR 출력 ===============================
+PAGES.qr = async () => {
+  const ls = editableLines();
+  $('#main').innerHTML = `<h1 class="noprint">QR코드 출력</h1>
+    <div class="card noprint"><div class="row"><label>라인</label><select id="qr-line" style="width:240px">${ls.map(l => `<option value="${l.id}">${esc(l.code)} ${esc(l.name)}</option>`).join('')}</select>
+      <label>작업자 앱 주소</label><input type="text" id="qr-base" value="${esc(WORKER_BASE)}" style="width:360px">
+      <button class="btn" onclick="renderQR()">생성</button><button class="btn sec" onclick="window.print()">🖨 인쇄</button></div>
+      <p class="muted">QR 내용: <code>작업자앱주소?eq=설비코드</code> — 설비에 붙인 뒤에는 설비코드를 바꾸지 마세요. 코팅해서 설비 눈높이에 부착하세요.</p></div>
+    <div class="qr-grid" id="qr-grid"></div>`;
+  renderQR();
+};
+function renderQR(){
+  const lid = $('#qr-line').value, base = $('#qr-base').value.trim();
+  const eqs = equipment.filter(e => e.line_id===lid && e.active);
+  $('#qr-grid').innerHTML = eqs.map(e => `<div class="qr-card"><canvas id="qr-${e.id}"></canvas><div class="t1">${esc(e.name)}</div><div class="t2">${esc(e.process_name||'')} · ${esc(e.code)}</div><div class="t2" style="margin-top:6px">📷 카메라로 찍으면 표준작업이 열립니다</div></div>`).join('') || '<p class="muted">이 라인에 설비가 없습니다.</p>';
+  eqs.forEach(e => QRCode.toCanvas(document.getElementById('qr-'+e.id), `${base}?eq=${encodeURIComponent(e.code)}`, { width: 360, margin: 1, errorCorrectionLevel: 'M' }));
+}
+
+// =============================== 공통 ===============================
+// prompt()/confirm() 대체 — 모바일·샌드박스에서도 동작
+function ask(label, def=''){ return new Promise(res => {
+  modal(`<h2>${esc(label)}</h2><input type="text" id="ask-in" value="${esc(def)}"><div style="margin-top:12px;text-align:right"><button class="btn sec" id="ask-no">취소</button> <button class="btn" id="ask-ok">확인</button></div>`, true);
+  const done = v => { closeModal(); res(v); };
+  $('#ask-ok').onclick = () => done($('#ask-in').value); $('#ask-no').onclick = () => done(null);
+  $('#ask-in').addEventListener('keydown', e => { if(e.key==='Enter') done($('#ask-in').value); if(e.key==='Escape') done(null); });
+  setTimeout(() => { $('#ask-in').focus(); $('#ask-in').select(); }, 50);
+}); }
+function confirmBox(msg){ return new Promise(res => {
+  modal(`<p style="margin:0 0 14px">${esc(msg)}</p><div style="text-align:right"><button class="btn sec" id="ask-no">취소</button> <button class="btn danger" id="ask-ok">확인</button></div>`, true);
+  $('#ask-ok').onclick = () => { closeModal(); res(true); }; $('#ask-no').onclick = () => { closeModal(); res(false); };
+}); }
+function modal(html, bare){ closeModal(); const d = document.createElement('div'); d.className='modal-bg'; d.id='modal'; d.innerHTML = `<div class="modal">${html}${bare?'':'<div style="text-align:right;margin-top:12px"><button class="btn sec" onclick="closeModal()">닫기</button></div>'}</div>`; d.addEventListener('click', e => { if(e.target===d) closeModal(); }); document.body.appendChild(d); }
+function closeModal(){ $('#modal')?.remove(); }
+
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b2545">
+<title>표준작업 가이드</title>
+<style>
+  :root{
+    --navy:#0b2545; --blue:#1d6fd8; --bg:#f3f5f8; --card:#fff; --ink:#1b1f27; --mute:#6b7280;
+    --ok:#15803d; --okbg:#e8f6ec; --nok:#b91c1c; --nokbg:#fdecec; --warn:#b45309; --warnbg:#fff4e0;
+    --line:#e3e7ee; --r:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Noto Sans","Malgun Gothic",sans-serif;font-size:16px;line-height:1.5}
+  button{font:inherit;touch-action:manipulation}
+  .hidden{display:none !important}
+  /* ---- 상단 ---- */
+  header{background:var(--navy);color:#fff;padding:12px 16px 12px;padding-top:calc(12px + env(safe-area-inset-top));position:sticky;top:0;z-index:5}
+  header .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  header .line{font-size:12px;opacity:.75}
+  .linebadge{display:inline-block;margin:4px 0 2px;background:#f59e0b;color:#111;font-weight:900;font-size:15px;letter-spacing:.5px;border-radius:8px;padding:3px 12px}
+  header .proc{font-size:13px;opacity:.85;margin-top:2px}
+  header h1{margin:2px 0 0;font-size:19px;font-weight:700;line-height:1.3}
+  header .meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;opacity:.9}
+  .chip{display:inline-block;background:rgba(255,255,255,.15);border-radius:999px;padding:2px 10px}
+  .chip.exp{background:#f59e0b;color:#111}
+  .langbtn{flex:0 0 auto;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:999px;padding:5px 11px;font-size:13px;font-weight:700}
+  .langbtn.dark{background:#fff;color:var(--navy);border-color:var(--line);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+  .langfloat{position:fixed;top:calc(10px + env(safe-area-inset-top));right:12px;z-index:8}
+  /* ---- 탭 ---- */
+  nav.tabs{display:grid;grid-template-columns:repeat(5,1fr);background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:4}
+  nav.tabs button{background:none;border:0;padding:9px 2px 7px;font-size:11px;color:var(--mute);border-bottom:3px solid transparent;display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.2;word-break:keep-all}
+  nav.tabs button .ic{font-size:20px;line-height:1}
+  nav.tabs button.on{color:var(--blue);border-bottom-color:var(--blue);font-weight:700}
+  nav.tabs button[data-s=safety].on{color:var(--nok);border-bottom-color:var(--nok)}
+  /* ---- 본문 ---- */
+  main{padding:14px 14px calc(30px + env(safe-area-inset-bottom));max-width:720px;margin:0 auto}
+  .card{background:var(--card);border-radius:var(--r);padding:14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .card h2{margin:0 0 8px;font-size:16px}
+  .card h3{margin:0 0 6px;font-size:15px}
+  .ver{font-size:12px;color:var(--mute);margin:-4px 0 12px}
+  .notice{font-size:12px;background:#fff7e6;color:var(--warn);border-radius:8px;padding:6px 10px;margin:-4px 0 12px}
+  .empty{color:var(--mute);text-align:center;padding:40px 10px}
+  video{width:100%;border-radius:10px;background:#000;max-height:60vh}
+  .vtitle{font-size:14px;font-weight:600;margin:8px 0 2px}
+  .fullvideo{border:2px solid var(--navy)}
+  .vlabel{font-size:13px;font-weight:800;color:var(--navy);margin-bottom:8px}
+  .step{display:flex;gap:10px;padding:12px 0;border-top:1px solid var(--line)}
+  .step:first-of-type{border-top:0}
+  .step .no{flex:0 0 30px;height:30px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+  .step .body{flex:1;min-width:0}
+  .step .kp{margin-top:6px;background:var(--warnbg);color:var(--warn);border-radius:8px;padding:6px 10px;font-size:14px;font-weight:600}
+  .step .thumb{flex:0 0 108px;width:108px;height:84px;object-fit:cover;border-radius:10px;background:#eee;align-self:flex-start}
+  img.ph{width:100%;border-radius:10px;margin-top:8px;display:block;background:#eee}
+  .oknok{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .oknok>div{border-radius:10px;padding:8px;font-size:14px}
+  .oknok .ok{background:var(--okbg);border:2px solid var(--ok)}
+  .oknok .nok{background:var(--nokbg);border:2px solid var(--nok)}
+  .oknok .lab{font-weight:800;font-size:15px;margin-bottom:4px}
+  .oknok .ok .lab{color:var(--ok)} .oknok .nok .lab{color:var(--nok)}
+  .oknok img{margin-top:0;margin-bottom:6px;aspect-ratio:4/3;object-fit:cover}
+  .tag{display:inline-block;font-size:12px;border-radius:6px;padding:1px 8px;background:#eef2f7;color:#374151;margin-right:6px}
+  .ppe{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+  .ppe>div{text-align:center;font-size:13px;font-weight:600}
+  .ppe img{aspect-ratio:1;object-fit:cover;margin:0 0 4px}
+  .ppe .icon{font-size:36px;background:#eef2f7;border-radius:12px;padding:12px 0 6px;margin-bottom:4px}
+  ul.rules{padding-left:0;list-style:none;margin:0}
+  ul.rules li{padding:10px 12px;border-radius:10px;margin-bottom:8px;background:#f7f9fc;display:flex;gap:10px;align-items:flex-start}
+  ul.rules li::before{content:"✔";color:var(--ok);font-weight:900}
+  ul.rules.danger li{background:var(--nokbg)} ul.rules.danger li::before{content:"⚠";color:var(--nok)}
+  .case{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
+  .case .sym{font-weight:800;font-size:15px;margin-bottom:6px}
+  .case .stop{display:inline-block;background:var(--nok);color:#fff;font-size:12px;border-radius:6px;padding:1px 8px;margin-left:6px;vertical-align:middle}
+  .case .act{white-space:pre-wrap}
+  .contact{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+  .contact a{background:var(--blue);color:#fff;text-decoration:none;border-radius:999px;padding:6px 14px;font-size:14px;font-weight:700}
+  /* ---- 전체화면 (코드입력/재스캔) ---- */
+  .screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 22px;text-align:center}
+  .screen .logo{font-size:44px;margin-bottom:8px}
+  .screen h2{margin:0 0 6px;font-size:22px}
+  .screen p{color:var(--mute);margin:0 0 20px;max-width:340px}
+  .screen input{width:100%;max-width:320px;font-size:26px;letter-spacing:4px;text-align:center;padding:14px;border:2px solid var(--line);border-radius:12px;text-transform:uppercase}
+  .screen input:focus{outline:none;border-color:var(--blue)}
+  .btn{display:block;width:100%;max-width:320px;margin:14px auto 0;background:var(--blue);color:#fff;border:0;border-radius:12px;padding:15px;font-size:17px;font-weight:700}
+  .btn:disabled{opacity:.5}
+  .err{color:var(--nok);font-weight:600;margin-top:12px;min-height:24px}
+  /* ---- 언어 선택 시트 ---- */
+  .sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:40;display:flex;align-items:flex-end}
+  .sheet{background:#fff;width:100%;border-radius:18px 18px 0 0;padding:14px 14px calc(16px + env(safe-area-inset-bottom));max-height:80vh;overflow:auto}
+  .sheet h3{margin:4px 0 10px;font-size:15px;color:var(--mute)}
+  .sheet .langs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .sheet button{background:#f3f5f8;border:2px solid transparent;border-radius:12px;padding:13px 10px;font-size:16px;font-weight:600;text-align:left}
+  .sheet button.on{border-color:var(--blue);background:#eaf2ff;color:var(--blue)}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;z-index:50}
+  .lightbox img{max-width:100%;max-height:100%}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 18px;border-radius:999px;font-size:14px;z-index:60;opacity:0;transition:.2s}
+  .toast.show{opacity:1}
+  .demo-badge{position:fixed;bottom:12px;right:12px;background:#f59e0b;color:#111;font-size:11px;font-weight:800;padding:2px 8px;border-radius:6px;z-index:9}
+</style>
+</head>
+<body>
+
+<button class="langbtn dark langfloat hidden" id="langfloat">🌐 <span>한국어</span></button>
+
+<!-- 로딩 -->
+<div id="s-loading" class="screen"><div class="logo">⏳</div><p data-t="loading">불러오는 중…</p></div>
+
+<!-- 최초 접속: 접속코드 입력 -->
+<div id="s-code" class="screen hidden">
+  <div class="logo">🔐</div>
+  <h2 data-t="code_title"></h2>
+  <p data-t="code_msg"></p>
+  <input id="code-input" inputmode="latin" autocomplete="one-time-code" maxlength="8">
+  <button class="btn" id="code-btn" data-t="register"></button>
+  <div class="err" id="code-err"></div>
+</div>
+
+<!-- 세션 만료 / 설비 미지정: QR 재촬영 -->
+<div id="s-rescan" class="screen hidden">
+  <div class="logo">📷</div>
+  <h2 id="rescan-title"></h2>
+  <p id="rescan-msg"></p>
+  <p style="font-size:13px" id="rescan-who"></p>
+</div>
+
+<!-- 메인 -->
+<div id="s-main" class="hidden">
+  <header>
+    <div class="top">
+      <div style="min-width:0">
+        <div class="line" id="h-plant">—</div>
+        <div class="linebadge" id="h-linename">—</div>
+        <h1 id="h-name">—</h1>
+        <div class="proc" id="h-proc"></div>
+      </div>
+      <button class="langbtn" id="langbtn">🌐 <span>한국어</span></button>
+    </div>
+    <div class="meta">
+      <span id="h-worker"></span>
+      <span class="chip" id="h-valid"></span>
+    </div>
+  </header>
+  <nav class="tabs" id="tabs">
+    <button data-s="safety"><span class="ic">🦺</span><span data-t="tab_safety"></span></button>
+    <button data-s="sop"><span class="ic">🎬</span><span data-t="tab_sop"></span></button>
+    <button data-s="inspection"><span class="ic">🔍</span><span data-t="tab_inspection"></span></button>
+    <button data-s="quality"><span class="ic">✅</span><span data-t="tab_quality"></span></button>
+    <button data-s="abnormal"><span class="ic">🚨</span><span data-t="tab_abnormal"></span></button>
+  </nav>
+  <main id="content"></main>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../config.js"></script>
+<script src="i18n.js"></script>
+<script>
+// =====================================================================
+//  작업자 앱
+//  URL: /worker/?eq=<설비코드>   ← QR코드에 들어가는 주소
+//       /worker/?demo=1          ← 샘플 데이터로 미리보기 (DB 불필요)
+// =====================================================================
+const $ = (s) => document.querySelector(s);
+const params = new URLSearchParams(location.search);
+const DEMO = params.get('demo') === '1';
+const CFG = window.APP_CONFIG || {};
+const SECTION_ORDER = ['safety','sop','inspection','quality','abnormal'];   // 안전 최우선
+let sb = null, LANG = 'ko', CUR = 'safety';
+let state = { equipment: null, worker: null, validUntil: null, standards: {}, urlCache: {} };
+
+// ---------- 언어 ----------
+try { LANG = localStorage.getItem('lang') || 'ko'; } catch(e){}
+const T = (k) => window.t(k, LANG);
+function applyLang(){
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-t]').forEach(el => el.textContent = T(el.dataset.t));
+  $('#code-input').placeholder = T('code_ph');
+  const name = (window.LANGS.find(l => l.code === LANG) || {}).name || LANG;
+  document.querySelectorAll('.langbtn span').forEach(s => s.textContent = name);
+}
+function setLang(code){
+  LANG = code; try { localStorage.setItem('lang', code); } catch(e){}
+  applyLang(); closeSheet();
+  if(!$('#s-main').classList.contains('hidden')){ renderHeader(); renderSection(CUR); }
+  if(!$('#s-rescan').classList.contains('hidden') && state._rescan) showRescan(...state._rescan);
+}
+function openSheet(){
+  const d = document.createElement('div'); d.className = 'sheet-bg'; d.id = 'sheet';
+  d.innerHTML = `<div class="sheet"><h3>🌐 ${T('lang')} / Language</h3><div class="langs">${window.LANGS.map(l => `<button class="${l.code===LANG?'on':''}" onclick="setLang('${l.code}')">${l.name}</button>`).join('')}</div></div>`;
+  d.addEventListener('click', e => { if(e.target === d) closeSheet(); });
+  document.body.appendChild(d);
+}
+function closeSheet(){ $('#sheet')?.remove(); }
+$('#langbtn').onclick = openSheet; $('#langfloat').onclick = openSheet;
+
+function show(id){
+  ['s-loading','s-code','s-rescan','s-main'].forEach(x => $('#'+x).classList.toggle('hidden', x !== id));
+  $('#langfloat').classList.toggle('hidden', id === 's-main' || id === 's-loading');
+}
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtTime(d){ d=new Date(d); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+
+// ---------- 번역 적용: 원문(ko) 구조 위에 번역 문자열을 덮어씀 ----------
+function mergeLang(src, tr){
+  if(!tr) return src;
+  if(Array.isArray(src)) return src.map((v,i) => mergeLang(v, Array.isArray(tr) ? tr[i] : undefined));
+  if(src && typeof src === 'object'){ const o = {}; for(const [k,v] of Object.entries(src)) o[k] = mergeLang(v, tr?.[k]); return o; }
+  if(typeof src === 'string' && typeof tr === 'string' && tr.trim()) return tr;
+  return src;
+}
+
+// ---------- 미디어 URL (비공개 버킷 → 서명 URL) ----------
+async function mediaUrl(path){
+  if(!path) return '';
+  if(DEMO || /^(https?:|data:)/.test(path)) return path;
+  if(state.urlCache[path]) return state.urlCache[path];
+  const { data, error } = await sb.storage.from('media').createSignedUrl(path, 3600);
+  if(error){ console.warn('signed url', error); return ''; }
+  state.urlCache[path] = data.signedUrl; return data.signedUrl;
+}
+async function resolveMedia(content){
+  const walk = async (v) => {
+    if(Array.isArray(v)) return Promise.all(v.map(walk));
+    if(v && typeof v === 'object'){
+      const o = {};
+      for(const [k,val] of Object.entries(v)){
+        if(/(^|_)path$/.test(k) && typeof val === 'string') o[k.replace(/path$/,'url')] = await mediaUrl(val);
+        o[k] = await walk(val);
+      }
+      return o;
+    }
+    return v;
+  };
+  return walk(content);
+}
+
+// ---------- 렌더러 ----------
+const R = {
+  safety(c){
+    let h='';
+    if((c.ppe||[]).length) h += `<div class="card"><h2>${T('ppe')}</h2><div class="ppe">` + c.ppe.map(p=>`<div>${p.image_url?`<img class="ph" src="${esc(p.image_url)}" onclick="lightbox(this.src)">`:`<div class="icon">${esc(p.icon||'🦺')}</div>`}${esc(p.name)}</div>`).join('') + `</div></div>`;
+    if((c.hazards||[]).length) h += `<div class="card"><h2>${T('hazards')}</h2><ul class="rules danger">${c.hazards.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
+    if((c.rules||[]).length) h += `<div class="card"><h2>${T('rules')}</h2><ul class="rules">${c.rules.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
+    return h;
+  },
+  sop(c){
+    let h = '';
+    // 1) 전체 공정 작업 영상 (처음~끝) — 맨 위 고정
+    const fv = c.full_video || {};
+    if(fv.url) h += `<div class="card fullvideo"><div class="vlabel">🎬 ${T('full_video')}</div><video controls playsinline preload="metadata" src="${esc(fv.url)}"></video>${fv.title?`<div class="vtitle">${esc(fv.title)}</div>`:''}</div>`;
+    else if(DEMO) h += `<div class="card fullvideo"><div class="vlabel">🎬 ${T('full_video')}</div><div style="aspect-ratio:16/9;background:#111;border-radius:10px;color:#fff;display:flex;align-items:center;justify-content:center;font-size:40px">▶</div>${fv.title?`<div class="vtitle">${esc(fv.title)}</div>`:''}</div>`;
+    // 1-1) 추가 영상(구간별)이 있으면 이어서
+    (c.videos||[]).forEach(v => { if(v.url) h += `<div class="card"><video controls playsinline preload="metadata" src="${esc(v.url)}"></video>${v.title?`<div class="vtitle">${esc(v.title)}</div>`:''}</div>`; });
+    // 2) 텍스트 순서 + 옆에 참고 사진 1장
+    if((c.steps||[]).length){
+      h += `<div class="card"><h2>${T('steps')}</h2>` + c.steps.map((s,i)=>`
+        <div class="step"><div class="no">${i+1}</div><div class="body">
+          <div>${esc(s.text)}</div>
+          ${s.key_point?`<div class="kp">★ ${T('key_point')}: ${esc(s.key_point)}</div>`:''}
+        </div>${s.image_url?`<img class="thumb" src="${esc(s.image_url)}" loading="lazy" onclick="lightbox(this.src)">`:''}</div>`).join('') + `</div>`;
+    }
+    if(c.notes) h += `<div class="card"><h3>${T('notes')}</h3><div style="white-space:pre-wrap">${esc(c.notes)}</div></div>`;
+    return h;
+  },
+  inspection(c){
+    if(!(c.items||[]).length) return '';
+    return c.items.map(it => `<div class="card">
+      <h3>${esc(it.name)}</h3>
+      <div style="margin-bottom:4px">${it.interval?`<span class="tag">${T('interval')}: ${esc(it.interval)}</span>`:''}${it.method?`<span class="tag">${esc(it.method)}</span>`:''}</div>
+      <div class="oknok">
+        <div class="ok"><div class="lab">OK</div>${it.ok?.image_url?`<img class="ph" src="${esc(it.ok.image_url)}" loading="lazy" onclick="lightbox(this.src)">`:''}<div>${esc(it.ok?.desc)}</div></div>
+        <div class="nok"><div class="lab">NOK</div>${it.nok?.image_url?`<img class="ph" src="${esc(it.nok.image_url)}" loading="lazy" onclick="lightbox(this.src)">`:''}<div>${esc(it.nok?.desc)}</div></div>
+      </div>
+      ${it.nok_action?`<div style="margin-top:10px;font-size:14px"><b>${T('nok_action')}:</b> ${esc(it.nok_action)}</div>`:''}
+    </div>`).join('');
+  },
+  quality(c){
+    let h='';
+    if((c.points||[]).length) h += `<div class="card"><h2>${T('quality_points')}</h2>` + c.points.map((p,i)=>`<div class="step"><div class="no">${i+1}</div><div class="body"><div>${esc(p.text)}</div>${p.spec?`<div style="font-size:14px;color:var(--mute)">${T('spec')}: ${esc(p.spec)}</div>`:''}</div>${p.image_url?`<img class="thumb" src="${esc(p.image_url)}" loading="lazy" onclick="lightbox(this.src)">`:''}</div>`).join('') + `</div>`;
+    if((c.defects||[]).length) h += `<div class="card"><h2>${T('defects')}</h2>` + c.defects.map(d=>`<div class="case"><div class="sym">${esc(d.name)}</div>${d.image_url?`<img class="ph" src="${esc(d.image_url)}" loading="lazy" onclick="lightbox(this.src)">`:''}${d.cause?`<div style="font-size:14px;margin-top:6px"><b>${T('cause')}:</b> ${esc(d.cause)}</div>`:''}${d.action?`<div style="font-size:14px"><b>${T('action')}:</b> ${esc(d.action)}</div>`:''}</div>`).join('') + `</div>`;
+    return h;
+  },
+  abnormal(c){
+    let h='';
+    if((c.cases||[]).length) h += `<div class="card"><h2>${T('abnormal_cases')}</h2>` + c.cases.map(k=>`<div class="case"><div class="sym">${esc(k.symptom)}${k.stop_line?`<span class="stop">${T('stop_line')}</span>`:''}</div><div class="act">${esc(k.action)}</div>${k.contact?`<div style="font-size:14px;color:var(--mute);margin-top:6px">${T('contact')}: ${esc(k.contact)}</div>`:''}</div>`).join('') + `</div>`;
+    if((c.contacts||[]).length) h += `<div class="card"><h2>${T('contacts')}</h2>` + c.contacts.map(p=>`<div class="contact"><div><b>${esc(p.role)}</b> ${esc(p.name)}</div>${p.phone?`<a href="tel:${esc(p.phone)}">📞 ${T('call')}</a>`:''}</div>`).join('') + `</div>`;
+    return h;
+  }
+};
+
+function lightbox(src){ const d=document.createElement('div'); d.className='lightbox'; d.innerHTML=`<img src="${esc(src)}">`; d.onclick=()=>d.remove(); document.body.appendChild(d); }
+
+async function renderSection(sec){
+  CUR = sec;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.s === sec));
+  const s = state.standards[sec];
+  const main = $('#content');
+  if(!s){ main.innerHTML = `<div class="empty"><b>${T('sec_'+sec)}</b><br>${T('no_content')}</div>`; return; }
+  const tr = LANG === 'ko' ? null : (s.translations || {})[LANG];
+  const merged = mergeLang(s.content || {}, tr);
+  const c = await resolveMedia(merged);
+  const html = R[sec](c);
+  main.innerHTML = `<div class="ver">${T('sec_'+sec)} · v${s.version} · ${T('published')} ${fmtTime(s.published_at)}</div>`
+    + (LANG !== 'ko' && !tr ? `<div class="notice">${T('not_translated')}</div>` : '')
+    + (html || `<div class="empty">${T('no_content')}</div>`);
+  window.scrollTo(0,0);
+  if(!DEMO) sb.rpc('log_view', { p_equipment_id: state.equipment.id, p_section: sec }).then(()=>{});
+}
+
+async function loadStandards(){
+  if(DEMO){ state.standards = DEMO_DATA.standards; return; }
+  const { data, error } = await sb.from('standards').select('section,version,content,translations,published_at')
+    .eq('equipment_id', state.equipment.id).eq('status','published');
+  if(error){ toast(T('err_server')); console.error(error); return; }
+  state.standards = {}; (data||[]).forEach(r => state.standards[r.section] = r);
+  document.querySelectorAll('#tabs button').forEach(b => b.style.opacity = state.standards[b.dataset.s] ? 1 : .45);
+}
+
+function renderHeader(){
+  const e = state.equipment;
+  $('#h-plant').textContent = CFG.PLANT_NAME || '';
+  $('#h-linename').textContent = e.line_name || '';
+  $('#h-name').textContent = e.name;
+  $('#h-proc').textContent = e.process_name || '';
+  $('#h-worker').textContent = state.worker ? `${state.worker.name} (${state.worker.employee_no})` : '';
+  tickValid();
+}
+function tickValid(){
+  if(!state.validUntil) return;
+  const ms = new Date(state.validUntil) - Date.now();
+  const chip = $('#h-valid');
+  if(ms <= 0){ chip.textContent = T('expired'); chip.classList.add('exp'); showRescan('expired', 'expired_msg'); return; }
+  const h = Math.floor(ms/3.6e6), m = Math.floor(ms%3.6e6/6e4);
+  chip.textContent = `${T('valid')} ${h}${T('hour')} ${m}${T('min')}`;
+  chip.classList.toggle('exp', ms < 30*6e4);
+}
+setInterval(tickValid, 30000);
+
+// title/msg 는 i18n 키 또는 {raw:'문자열'}
+function showRescan(titleKey, msgKey, extra){
+  state._rescan = [titleKey, msgKey, extra];
+  const txt = k => (k && k.raw !== undefined) ? k.raw : T(k);
+  $('#rescan-title').textContent = txt(titleKey); $('#rescan-msg').textContent = txt(msgKey) + (extra ? ' ' + extra : '');
+  $('#rescan-who').textContent = state.worker ? `${T('phone_of')}: ${state.worker.name} (${state.worker.employee_no})` : '';
+  show('s-rescan');
+}
+
+async function enterMain(){
+  renderHeader();
+  await loadStandards();
+  show('s-main');
+  renderSection(state.standards.safety ? 'safety' : (SECTION_ORDER.find(s => state.standards[s]) || 'safety'));
+}
+
+// ---------- 흐름 ----------
+async function afterRegistered(){
+  const eq = params.get('eq');
+  if(eq){
+    const { data, error } = await sb.rpc('register_scan', { p_equipment_code: eq });
+    if(error){ toast(T('err_server')); console.error(error); return; }
+    if(!data.ok){
+      if(data.error === 'unknown_equipment') return showRescan('unknown_eq', 'ask_manager', `(${eq})`);
+      if(data.error === 'blocked') return showRescan('blocked', 'ask_manager');
+      return showRescan('conn_fail', { raw: data.error });
+    }
+    state.equipment = data.equipment; state.worker = data.worker; state.validUntil = data.valid_until;
+    history.replaceState(null, '', location.pathname);   // 주소에서 eq 제거 → 새로고침/북마크로는 세션 연장 안 됨
+    return enterMain();
+  }
+  const { data: st, error } = await sb.rpc('my_worker_status');
+  if(error){ toast(T('err_server')); console.error(error); return; }
+  state.worker = { name: st.name, employee_no: st.employee_no }; state.validUntil = st.valid_until;
+  if(!st.valid) return showRescan('expired', 'expired_msg');
+  if(!st.equipment) return showRescan('scan_title', 'scan_msg');
+  state.equipment = st.equipment;
+  return enterMain();
+}
+
+// 컨트롤타워에서 수정한 설정·문구 (앱이 켜질 때마다 읽음)
+async function loadAppTexts(){
+  try {
+    const [{ data: st }, { data: tx }] = await Promise.all([ sb.from('app_settings').select('key,value'), sb.from('app_texts').select('key,lang,text') ]);
+    (st||[]).forEach(r => { if(r.key === 'plant_name') CFG.PLANT_NAME = r.value; if(r.key === 'app_name') { CFG.APP_NAME = r.value; document.title = r.value; } if(r.key === 'session_hours') CFG.SESSION_HOURS = +r.value || 12; });
+    window.applyTextOverrides(tx||[]);
+    applyLang();
+  } catch(e){ console.warn('app texts', e); }
+}
+
+async function init(){
+  applyLang();
+  if(DEMO){
+    document.body.insertAdjacentHTML('beforeend', '<div class="demo-badge">DEMO</div>');
+    state.equipment = DEMO_DATA.equipment; state.worker = DEMO_DATA.worker;
+    state.validUntil = new Date(Date.now() + 11.5*3.6e6).toISOString();
+    return enterMain();
+  }
+  if(!CFG.SUPABASE_URL || CFG.SUPABASE_URL.includes('YOUR-') || !window.supabase){ return showRescan('setup_needed', { raw: 'config.js: SUPABASE_URL / SUPABASE_ANON_KEY' }); }
+  sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+  let { data: { session } } = await sb.auth.getSession();
+  if(!session){
+    const { data, error } = await sb.auth.signInAnonymously();
+    if(error){ return showRescan('conn_fail', 'conn_msg'); }
+    session = data.session;
+  }
+  await loadAppTexts();
+  const { data: st, error } = await sb.rpc('my_worker_status');
+  if(error){ return showRescan('conn_fail', 'conn_msg'); }
+  if(!st.registered){ show('s-code'); setTimeout(()=>$('#code-input').focus(), 100); return; }
+  return afterRegistered();
+}
+
+$('#code-btn').onclick = async () => {
+  const code = $('#code-input').value.trim().toUpperCase();
+  if(code.length < 6){ $('#code-err').textContent = T('err_check'); return; }
+  $('#code-btn').disabled = true; $('#code-err').textContent = '';
+  const { data, error } = await sb.rpc('redeem_access_code', { p_code: code });
+  $('#code-btn').disabled = false;
+  if(error){ $('#code-err').textContent = T('err_server'); return; }
+  if(!data.ok){
+    $('#code-err').textContent = { invalid_code:T('err_invalid'), code_used:T('err_used'), code_expired:T('err_expired') }[data.error] || data.error;
+    return;
+  }
+  toast(`${data.name} — ${T('registered')}`);
+  afterRegistered();
+};
+$('#code-input').addEventListener('keydown', e => { if(e.key==='Enter') $('#code-btn').click(); });
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if(b) renderSection(b.dataset.s); });
+
+// ---------- 데모 데이터 ----------
+const ph = (label, bg, fg='#fff') => `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><rect width="100%" height="100%" fill="${bg}"/><text x="50%" y="50%" font-size="28" font-family="sans-serif" fill="${fg}" text-anchor="middle" dominant-baseline="middle">${label}</text></svg>`)}`;
+const DEMO_DATA = {
+  equipment: { id:'demo', code:'GPF-OP30', name:'스폿용접기 #3', process_name:'OP30 브라켓 용접', line_name:'GPF 라인' },
+  worker: { name:'김작업', employee_no:'24031' },
+  standards: {
+    safety: { version:1, published_at:'2026-10-01T09:00:00+09:00', content:{
+      ppe:[ {name:'보안경', icon:'🥽'}, {name:'용접 장갑', icon:'🧤'}, {name:'안전화', icon:'🥾'}, {name:'귀마개', icon:'🎧'} ],
+      hazards:[ '용접 스패터 비산 — 화상 위험', '클램프 하강 시 협착 위험', '전극 팁 고온(200℃ 이상)' ],
+      rules:[ '양손 기동 버튼 외 다른 방법으로 기동 금지', '클램프 하강 중 지그 내부에 손 넣지 않기', '전극 팁 교체는 전원 차단 후 보전 담당만', '광전 센서 가린 채 작업 금지' ]
+    }, translations: {
+      en: { ppe:[{name:'Safety goggles'},{name:'Welding gloves'},{name:'Safety shoes'},{name:'Ear plugs'}],
+            hazards:['Welding spatter — burn hazard','Pinch hazard when clamp descends','Electrode tip is hot (over 200℃)'],
+            rules:['Start only with the two-hand buttons','Keep hands out of the jig while the clamp descends','Electrode tips are replaced only by maintenance, power off','Never work with the light curtain covered'] },
+      vi: { ppe:[{name:'Kính bảo hộ'},{name:'Găng tay hàn'},{name:'Giày bảo hộ'},{name:'Nút bịt tai'}],
+            hazards:['Xỉ hàn bắn — nguy cơ bỏng','Nguy cơ kẹp tay khi kẹp hạ xuống','Đầu điện cực rất nóng (trên 200℃)'],
+            rules:['Chỉ khởi động bằng nút hai tay','Không đưa tay vào đồ gá khi kẹp đang hạ','Chỉ bảo trì mới được thay đầu điện cực, sau khi ngắt điện','Không làm việc khi cảm biến quang bị che'] },
+    }},
+    sop: { version:3, published_at:'2026-11-05T09:00:00+09:00', content:{
+      full_video:{ title:'OP30 전체 작업 (1분 40초)', url:'' },
+      videos:[],
+      steps:[
+        { text:'좌측 공급대에서 브라켓 A를 집어 지그 1번 핀에 끼운다.', key_point:'핀 2개가 모두 홀에 들어갔는지 손으로 눌러 확인', image_url: ph('지그 1번 핀','#334155') },
+        { text:'우측 공급대에서 브라켓 B를 지그 2번 위치에 올린다.', image_url: ph('지그 2번 위치','#475569') },
+        { text:'양손 기동 버튼을 동시에 눌러 용접을 시작한다.', key_point:'클램프 완전 하강 확인 후 버튼', image_url: ph('양손 버튼','#1d6fd8') },
+        { text:'용접 완료 램프 점등 후 제품을 꺼내 우측 트레이에 놓는다.', key_point:'너깃 3개 위치 육안 확인' },
+      ],
+      notes:'사이클 타임 42초. 제품 투입 전 전극 팁 오염 여부 확인.'
+    }, translations: {
+      en: { full_video:{title:'OP30 full process (1 min 40 s)'},
+            steps:[ {text:'Pick bracket A from the left feeder and fit it onto jig pin #1.', key_point:'Press by hand to confirm both pins are fully in the holes'},
+                    {text:'Place bracket B from the right feeder at jig position #2.'},
+                    {text:'Press both two-hand start buttons at the same time to start welding.', key_point:'Press only after the clamp is fully down'},
+                    {text:'When the weld-complete lamp lights, remove the part and place it on the right tray.', key_point:'Visually check all 3 nugget positions'} ],
+            notes:'Cycle time 42 s. Check electrode tips for contamination before loading parts.' },
+    }},
+    inspection: { version:2, published_at:'2026-10-28T09:00:00+09:00', content:{ items:[
+      { name:'용접 너깃 외관', interval:'시작 시 1개 / 2시간마다 1개', method:'육안', ok:{ image_url: ph('OK 너깃','#15803d'), desc:'너깃 지름 5mm 이상, 균일한 원형, 스패터 없음' }, nok:{ image_url: ph('NOK 너깃','#b91c1c'), desc:'핀홀, 과용입(움푹 파임), 너깃 위치 이탈' }, nok_action:'즉시 라인 정지 → 직전 2시간 생산품 격리 → 반장 호출' },
+      { name:'브라켓 조립 간격', interval:'시작 시 1개', method:'한계 게이지', ok:{ desc:'게이지 GO 통과, NO-GO 불통' }, nok:{ desc:'NO-GO 통과' }, nok_action:'지그 핀 마모 확인, 설비보전 호출' },
+    ]}},
+    quality: { version:1, published_at:'2026-10-01T09:00:00+09:00', content:{
+      points:[ {text:'브라켓 A/B 방향 — 각인 "UP"이 위로', spec:'각인 육안 확인', image_url: ph('각인 UP','#1d6fd8')}, {text:'너깃 3점 모두 형성', spec:'지름 ≥5mm'} ],
+      defects:[ {name:'너깃 미형성', cause:'전극 팁 마모, 가압력 부족', action:'해당 제품 NOK 박스, 보전 호출', image_url: ph('너깃 미형성','#7c2d12')}, {name:'브라켓 역조립', cause:'방향 확인 누락', action:'즉시 선별, 직전 30분 생산품 전수 확인'} ]
+    }},
+    abnormal: { version:1, published_at:'2026-10-01T09:00:00+09:00', content:{
+      cases:[
+        { symptom:'용접 불량 2개 연속 발생', stop_line:true, action:'1. 라인 정지 버튼\n2. NOK 제품 빨간 박스에 격리\n3. 반장 호출 → 전극 팁 상태 확인', contact:'반장 / 품질' },
+        { symptom:'설비 알람 (E-21 가압 이상)', stop_line:true, action:'1. 알람 코드 사진 촬영\n2. 리셋하지 말고 보전 호출\n3. 생산일지에 알람 시각 기록', contact:'설비보전' },
+        { symptom:'안전 센서 작동으로 정지', stop_line:false, action:'1. 지그 내 이물·손 확인\n2. 리셋 후 재기동\n3. 3회 이상 반복 시 보전 호출', contact:'' },
+      ],
+      contacts:[ {role:'반장', name:'박반장', phone:'010-0000-0000'}, {role:'설비보전', name:'보전 당직', phone:'010-0000-0001'}, {role:'품질', name:'품질 당직', phone:'010-0000-0002'} ]
+    }},
+  }
+};
+
+init();
+</script>
+</body>
+</html>
