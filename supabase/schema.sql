@@ -65,7 +65,7 @@ create table if not exists profile_lines (  -- 편집자가 담당하는 라인
 -- ---------------------------------------------------------------------
 create table if not exists access_codes (
   code        text primary key,           -- 관리자가 발급 (예: 8자리)
-  employee_no text not null,
+  employee_no text not null default '',   -- 선택 (외국인 작업자 등 사번 없을 수 있음)
   name        text not null,
   line_id     uuid references lines(id) on delete set null,
   expires_at  timestamptz not null default now() + interval '7 days',
@@ -77,7 +77,7 @@ create table if not exists access_codes (
 
 create table if not exists workers (
   id                uuid primary key,      -- = auth.uid() (익명 세션)
-  employee_no       text not null,
+  employee_no       text not null default '',
   name              text not null,
   line_id           uuid references lines(id) on delete set null,
   scan_valid_until  timestamptz not null default now() + interval '12 hours',
@@ -85,6 +85,12 @@ create table if not exists workers (
   blocked           boolean not null default false,
   created_at        timestamptz not null default now()
 );
+
+-- 기존 DB 보정: 사번 선택화
+alter table access_codes alter column employee_no set default '';
+alter table access_codes alter column employee_no drop not null;
+alter table workers alter column employee_no set default '';
+alter table workers alter column employee_no drop not null;
 
 -- ---------------------------------------------------------------------
 -- 4. 표준 콘텐츠 — 설비 × 섹션 × 버전
@@ -230,7 +236,7 @@ begin
     return json_build_object('ok', false, 'error', 'code_expired');
   end if;
   insert into workers (id, employee_no, name, line_id)
-  values (v_uid, v_ac.employee_no, v_ac.name, v_ac.line_id);
+  values (v_uid, coalesce(v_ac.employee_no, ''), v_ac.name, v_ac.line_id);
   update access_codes set used_by = v_uid, used_at = now() where code = v_ac.code;
   return json_build_object('ok', true, 'name', v_ac.name, 'employee_no', v_ac.employee_no);
 end $$;
@@ -263,7 +269,8 @@ begin
   v_hours := coalesce(v_hours, interval '12 hours');
   update workers
      set scan_valid_until = now() + v_hours,
-         last_equipment_id = v_eq.id
+         last_equipment_id = v_eq.id,
+         line_id = coalesce(line_id, v_eq.line_id)   -- 라인 미지정 작업자는 첫 스캔 설비의 라인으로 자동 지정
    where id = v_uid;
   insert into view_logs (worker_id, equipment_id, section) values (v_uid, v_eq.id, null);
   return json_build_object(
@@ -330,18 +337,23 @@ begin
 end $$;
 
 -- 접속코드 발급 (편집자: 담당 라인만)
-create or replace function issue_access_code(p_employee_no text, p_name text, p_line uuid, p_days int default 7)
+create or replace function issue_access_code(p_employee_no text, p_name text, p_line uuid default null, p_days int default 7)
 returns json language plpgsql security definer set search_path = public as $$
 declare v_code text;
 begin
-  if not can_edit_line(p_line) then return json_build_object('ok', false, 'error', 'forbidden'); end if;
+  if p_name is null or trim(p_name) = '' then return json_build_object('ok', false, 'error', 'name_required'); end if;
+  if p_line is null then
+    if not is_editor() then return json_build_object('ok', false, 'error', 'forbidden'); end if;
+  elsif not can_edit_line(p_line) then
+    return json_build_object('ok', false, 'error', 'forbidden');
+  end if;
   -- 헷갈리는 글자(0,O,1,I) 제외한 8자리
   loop
     v_code := upper(substr(translate(encode(gen_random_bytes(8), 'hex'), '01', 'XY'), 1, 8));
     exit when not exists (select 1 from access_codes where code = v_code);
   end loop;
   insert into access_codes (code, employee_no, name, line_id, expires_at, created_by)
-  values (v_code, p_employee_no, p_name, p_line, now() + make_interval(days => p_days), auth.uid());
+  values (v_code, coalesce(trim(p_employee_no), ''), trim(p_name), p_line, now() + make_interval(days => p_days), auth.uid());
   return json_build_object('ok', true, 'code', v_code);
 end $$;
 
@@ -544,15 +556,15 @@ create policy profile_lines_admin on profile_lines for all using (is_admin()) wi
 
 -- 접속코드: 담당 라인 편집자만 열람 (발급은 RPC)
 drop policy if exists access_codes_read on access_codes;
-create policy access_codes_read on access_codes for select using (can_edit_line(line_id));
+create policy access_codes_read on access_codes for select using (can_edit_line(line_id) or (line_id is null and is_editor()));
 drop policy if exists access_codes_del on access_codes;
-create policy access_codes_del on access_codes for delete using (can_edit_line(line_id));
+create policy access_codes_del on access_codes for delete using (can_edit_line(line_id) or (line_id is null and is_editor()));
 
 -- 작업자 목록: 담당 라인 편집자 열람/차단
 drop policy if exists workers_read on workers;
-create policy workers_read on workers for select using (can_edit_line(line_id) or id = auth.uid());
+create policy workers_read on workers for select using (can_edit_line(line_id) or (line_id is null and is_editor()) or id = auth.uid());
 drop policy if exists workers_edit on workers;
-create policy workers_edit on workers for update using (can_edit_line(line_id)) with check (can_edit_line(line_id));
+create policy workers_edit on workers for update using (can_edit_line(line_id) or (line_id is null and is_editor())) with check (can_edit_line(line_id) or (line_id is null and is_editor()));
 
 -- 표준: 작업자는 게시본만 / 편집자는 담당 라인 전체
 drop policy if exists standards_worker_read on standards;

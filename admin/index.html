@@ -448,7 +448,7 @@ async function renderLineDetail(){
     <div class="grid2"><div><table><tr><th>설비</th><th>게시</th><th>열람 작업자</th><th>QR 스캔</th><th>열람 수</th><th>최근 열람</th></tr>
       ${(eq||[]).map(e => `<tr><td><b>${esc(e.code)}</b> ${esc(e.name)}<div class="muted">${esc(e.process_name||'')}</div></td><td><span class="badge ${e.published_sections==5?'pub':''}">${e.published_sections}/5</span></td><td>${e.workers_viewed}</td><td>${e.scans}</td><td><b>${e.views}</b>${e.views===0&&e.published_sections>0?' <span class="badge arch">열람 없음</span>':''}</td><td class="muted">${fmt(e.last_viewed_at)||'—'}</td></tr>`).join('') || '<tr><td colspan=6 class="muted">설비 없음</td></tr>'}</table></div>
     <div><h3 style="margin:0 0 6px;font-size:14px">미열람 작업자 (${(un||[]).length}명)</h3>
-      ${(un||[]).length ? `<table><tr><th>사번</th><th>이름</th><th>마지막 열람</th></tr>${un.map(w => `<tr><td>${esc(w.employee_no)}</td><td>${esc(w.name)}</td><td class="muted">${fmt(w.last_viewed_at)||'기록 없음'}</td></tr>`).join('')}</table>` : '<p class="muted">이 기간에 모든 등록 작업자가 열람했습니다.</p>'}</div></div></div>`;
+      ${(un||[]).length ? `<table><tr><th>이름</th><th>마지막 열람</th></tr>${un.map(w => `<tr><td>${esc(w.name)}</td><td class="muted">${fmt(w.last_viewed_at)||'기록 없음'}</td></tr>`).join('')}</table>` : '<p class="muted">이 기간에 모든 등록 작업자가 열람했습니다.</p>'}</div></div></div>`;
 }
 
 // =============================== 라인 · 설비 ===============================
@@ -732,29 +732,29 @@ PAGES.workers = async () => {
   ]);
   $('#main').innerHTML = `<h1>작업자 · 접속코드</h1>
     <div class="card"><h2>접속코드 발급</h2>
-      <p class="muted">작업자 1명당 코드 1개. 작업자는 본인 휴대폰에서 최초 1회만 입력합니다. 휴대폰을 바꾸면 새 코드를 발급하세요.</p>
-      <div class="row"><input type="text" id="w-no" placeholder="사번" style="width:120px"><input type="text" id="w-name" placeholder="이름" style="width:120px">
-        <select id="w-line" style="width:200px">${editableLines().map(l => `<option value="${l.id}">${esc(l.code)} ${esc(l.name)}</option>`).join('')}</select>
+      <p class="muted">이름만 입력하면 됩니다. 작업자는 본인 휴대폰에서 코드를 최초 1회만 입력하고, 라인은 처음 QR을 찍는 설비의 라인으로 자동 지정됩니다. 동명이인은 이름 뒤에 소속을 붙여 구분하세요 (예: 김민수(대성)). 휴대폰을 바꾸면 새 코드를 발급하세요.</p>
+      <div class="row"><input type="text" id="w-name" placeholder="이름 (예: 김민수 또는 김민수(협력사명))" style="width:260px">
         <select id="w-days" style="width:110px"><option value="7">7일 유효</option><option value="1">1일 유효</option><option value="30">30일 유효</option></select>
         <button class="btn" onclick="issueCode()">발급</button></div>
       <div id="w-result" style="margin-top:10px">${LAST_CODE_HTML}</div></div>
     <div class="grid2">
-      <div class="card"><h2>발급된 코드</h2><table><tr><th>코드</th><th>사번 / 이름</th><th>라인</th><th>상태</th><th></th></tr>
-        ${(codes||[]).map(c => { const used = !!c.used_by, exp = new Date(c.expires_at) < new Date(); return `<tr><td><b style="font-family:monospace;font-size:15px">${esc(c.code)}</b></td><td>${esc(c.employee_no)} ${esc(c.name)}</td><td>${esc(lineName(c.line_id))}</td>
+      <div class="card"><h2>발급된 코드</h2><table><tr><th>코드</th><th>이름</th><th>상태</th><th></th></tr>
+        ${(codes||[]).map(c => { const used = !!c.used_by, exp = new Date(c.expires_at) < new Date(); return `<tr><td><b style="font-family:monospace;font-size:15px">${esc(c.code)}</b></td><td>${esc(c.name)}</td>
           <td>${used?`<span class="badge pub">사용됨 ${fmt(c.used_at)}</span>`:exp?`<span class="badge arch">만료</span>`:`<span class="badge draft">미사용 · ~${fmt(c.expires_at)}</span>`}</td>
-          <td>${!used?`<button class="btn sm sec" onclick="delCode('${c.code}')">삭제</button>`:''}</td></tr>`; }).join('') || '<tr><td colspan=5 class="muted">없음</td></tr>'}</table></div>
-      <div class="card"><h2>등록된 작업자 (휴대폰)</h2><table><tr><th>사번 / 이름</th><th>라인</th><th>세션 유효</th><th>마지막 설비</th><th></th></tr>
-        ${(workers||[]).map(w => { const valid = new Date(w.scan_valid_until) > new Date(); const eq = equipment.find(e=>e.id===w.last_equipment_id); return `<tr style="${w.blocked?'opacity:.5':''}"><td>${esc(w.employee_no)} ${esc(w.name)} ${w.blocked?'<span class="badge arch">차단</span>':''}</td><td>${esc(lineName(w.line_id))}</td>
+          <td>${!used?`<button class="btn sm sec" onclick="delCode('${c.code}')">삭제</button>`:''}</td></tr>`; }).join('') || '<tr><td colspan=4 class="muted">없음</td></tr>'}</table></div>
+      <div class="card"><h2>등록된 작업자 (휴대폰)</h2><table><tr><th>이름</th><th>라인</th><th>세션 유효</th><th>마지막 설비</th><th></th></tr>
+        ${(workers||[]).map(w => { const valid = new Date(w.scan_valid_until) > new Date(); const eq = equipment.find(e=>e.id===w.last_equipment_id); return `<tr style="${w.blocked?'opacity:.5':''}"><td>${esc(w.name)} ${w.blocked?'<span class="badge arch">차단</span>':''}</td><td>${w.line_id?esc(lineName(w.line_id)):'<span class="muted">미지정(스캔 전)</span>'}</td>
           <td>${valid?`<span class="badge pub">~${fmt(w.scan_valid_until)}</span>`:'<span class="badge arch">만료</span>'}</td><td>${esc(eq?.code||'')}</td>
           <td><button class="btn sm sec" onclick="blockWorker('${w.id}',${!w.blocked})">${w.blocked?'차단 해제':'차단'}</button></td></tr>`; }).join('') || '<tr><td colspan=5 class="muted">없음</td></tr>'}</table></div>
     </div>`;
+  $('#w-name').addEventListener('keydown', e => { if(e.key === 'Enter') issueCode(); });
 };
 async function issueCode(){
-  const no=$('#w-no').value.trim(), name=$('#w-name').value.trim(), line=$('#w-line').value, days=+$('#w-days').value;
-  if(!no||!name||!line) return toast('사번, 이름, 라인을 입력하세요');
-  const { data, error } = await sb.rpc('issue_access_code', { p_employee_no:no, p_name:name, p_line:line, p_days:days });
+  const name=$('#w-name').value.trim(), days=+$('#w-days').value;
+  if(!name) return toast('이름을 입력하세요');
+  const { data, error } = await sb.rpc('issue_access_code', { p_employee_no:'', p_name:name, p_line:null, p_days:days });
   if(error || !data.ok) return toast('발급 실패: ' + (error?.message||data.error));
-  LAST_CODE_HTML = `<div style="background:#eef4ff;border-radius:10px;padding:14px;display:flex;gap:16px;align-items:center"><div><div class="muted">${esc(name)} (${esc(no)}) 접속코드</div><div style="font-family:monospace;font-size:34px;font-weight:800;letter-spacing:4px">${data.code}</div></div>
+  LAST_CODE_HTML = `<div style="background:#eef4ff;border-radius:10px;padding:14px;display:flex;gap:16px;align-items:center;flex-wrap:wrap"><div><div class="muted">${esc(name)} 접속코드</div><div style="font-family:monospace;font-size:34px;font-weight:800;letter-spacing:4px">${data.code}</div></div>
     <div class="muted">작업자 휴대폰 카메라로 설비 QR을 찍은 뒤<br>이 코드를 입력하게 하세요. (${days}일 안에 입력)</div></div>`;
   go('workers');
 }
@@ -855,13 +855,13 @@ async function translateTexts(){
 // =============================== 로그 ===============================
 PAGES.logs = async () => {
   const since = new Date(Date.now() - 7*864e5).toISOString();
-  const { data: vl } = await sb.from('view_logs').select('viewed_at,section,workers(name,employee_no),equipment(code,name,line_id)').gte('viewed_at', since).order('viewed_at', { ascending:false }).limit(300);
+  const { data: vl } = await sb.from('view_logs').select('viewed_at,section,workers(name),equipment(code,name,line_id)').gte('viewed_at', since).order('viewed_at', { ascending:false }).limit(300);
   let audit = [];
   if(me.role === 'admin'){ const { data } = await sb.from('audit_log').select('*').order('at', { ascending:false }).limit(100); audit = data||[]; }
   const profilesMap = {}; if(me.role==='admin'){ const { data } = await sb.from('profiles').select('id,name'); (data||[]).forEach(p => profilesMap[p.id]=p.name); }
   $('#main').innerHTML = `<h1>열람 · 변경 로그</h1>
     <div class="card"><h2>작업자 열람 (최근 7일, 최대 300건)</h2><table><tr><th>시각</th><th>작업자</th><th>설비</th><th>본 내용</th></tr>
-      ${(vl||[]).map(r => `<tr><td class="muted">${fmt(r.viewed_at)}</td><td>${esc(r.workers?.name||'')} ${esc(r.workers?.employee_no||'')}</td><td>${esc(r.equipment?.code||'')} ${esc(r.equipment?.name||'')}</td><td>${r.section ? SECTIONS[r.section] : '<span class="badge">QR 스캔</span>'}</td></tr>`).join('') || '<tr><td colspan=4 class="muted">없음</td></tr>'}</table></div>
+      ${(vl||[]).map(r => `<tr><td class="muted">${fmt(r.viewed_at)}</td><td>${esc(r.workers?.name||'')}</td><td>${esc(r.equipment?.code||'')} ${esc(r.equipment?.name||'')}</td><td>${r.section ? SECTIONS[r.section] : '<span class="badge">QR 스캔</span>'}</td></tr>`).join('') || '<tr><td colspan=4 class="muted">없음</td></tr>'}</table></div>
     ${me.role==='admin' ? `<div class="card"><h2>변경 이력 (관리자, 최근 100건)</h2><table><tr><th>시각</th><th>누가</th><th>작업</th><th>대상</th><th>내용</th></tr>
       ${audit.map(a => `<tr><td class="muted">${fmt(a.at)}</td><td>${esc(profilesMap[a.actor]||'')}</td><td><span class="badge">${esc(a.action)}</span></td><td>${esc(a.target_table)}</td><td class="muted" style="max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(JSON.stringify(a.detail||{}).slice(0,160))}</td></tr>`).join('')}</table></div>` : ''}`;
 };

@@ -330,7 +330,7 @@ function renderHeader(){
   $('#h-linename').textContent = e.line_name || '';
   $('#h-name').textContent = e.name;
   $('#h-proc').textContent = e.process_name || '';
-  $('#h-worker').textContent = state.worker ? `${state.worker.name} (${state.worker.employee_no})` : '';
+  $('#h-worker').textContent = state.worker ? (state.worker.employee_no ? `${state.worker.name} (${state.worker.employee_no})` : state.worker.name) : '';
   tickValid();
 }
 function tickValid(){
@@ -349,7 +349,7 @@ function showRescan(titleKey, msgKey, extra){
   state._rescan = [titleKey, msgKey, extra];
   const txt = k => (k && k.raw !== undefined) ? k.raw : T(k);
   $('#rescan-title').textContent = txt(titleKey); $('#rescan-msg').textContent = txt(msgKey) + (extra ? ' ' + extra : '');
-  $('#rescan-who').textContent = state.worker ? `${T('phone_of')}: ${state.worker.name} (${state.worker.employee_no})` : '';
+  $('#rescan-who').textContent = state.worker ? `${T('phone_of')}: ${state.worker.name}${state.worker.employee_no?` (${state.worker.employee_no})`:''}` : '';
   show('s-rescan');
 }
 
