@@ -51,6 +51,8 @@
     audit_log:[ {id:1, actor:ME, action:'publish', target_table:'standards', target_id:'s2', detail:{section:'sop', version:2}, at:ago(24)}, {id:2, actor:'u-auth', action:'update', target_table:'standards', target_id:'s5', detail:{section:'abnormal'}, at:ago(2)} ],
     app_settings:[ {key:'app_name', value:'표준작업 가이드'}, {key:'plant_name', value:'FORVIA 대구공장'}, {key:'session_hours', value:'12'} ],
     app_texts:[],
+    editor_devices:[ {uid:'d1', profile_id:'u-mgr', created_at:ago(50), last_seen_at:ago(3)}, {uid:'d2', profile_id:'u-mgr', created_at:ago(40), last_seen_at:ago(30)} ],
+    editor_codes:[ {code:'M3K8P2QA', profile_id:'u-auth', max_uses:2, use_count:1, expires_at:ago(-100), created_at:ago(20)} ],
     v_equipment_status:null,   // 아래에서 계산
   };
   const statusView = () => DB.equipment.map(e => { const l = DB.lines.find(x=>x.id===e.line_id); const ss = DB.standards.filter(s=>s.equipment_id===e.id);
@@ -80,7 +82,13 @@
     };
     return q;
   }
+  let LOGGED = !new URLSearchParams(location.search).has('login');
   const rpc = async (name, a) => {
+    if(name==='my_profile') return {data: LOGGED ? {...DB.profiles.find(p=>p.id===ME)} : null};
+    if(name==='redeem_editor_code'){ if(a.p_code.length!==8) return {data:{ok:false,error:'invalid_code'}}; LOGGED=true; return {data:{ok:true,name:'서성목',role:'admin'}}; }
+    if(name==='create_editor'){ const id=uid(); DB.profiles.push({id, name:a.p_name, role:a.p_role, can_delete:a.p_can_delete, active:true, created_at:new Date().toISOString()}); (a.p_lines||[]).forEach(l=>DB.profile_lines.push({profile_id:id,line_id:l})); const code=Math.random().toString(36).slice(2,10).toUpperCase(); DB.editor_codes.push({code, profile_id:id, max_uses:2, use_count:0, expires_at:ago(-168)}); return {data:{ok:true, profile_id:id, code}}; }
+    if(name==='issue_editor_code'){ DB.editor_codes = DB.editor_codes.filter(c=>c.profile_id!==a.p_profile); const code=Math.random().toString(36).slice(2,10).toUpperCase(); DB.editor_codes.push({code, profile_id:a.p_profile, max_uses:2, use_count:0, expires_at:ago(-168)}); return {data:{ok:true, code}}; }
+    if(name==='revoke_editor_devices'){ const n=DB.editor_devices.filter(d=>d.profile_id===a.p_profile).length; DB.editor_devices=DB.editor_devices.filter(d=>d.profile_id!==a.p_profile); DB.editor_codes=DB.editor_codes.filter(c=>c.profile_id!==a.p_profile); return {data:{ok:true, devices:n}}; }
     if(name==='publish_standard'){ const d = DB.standards.find(s=>s.id===a.p_draft_id); if(!d) return {data:{ok:false,error:'no_draft'}};
       const v = Math.max(0, ...DB.standards.filter(s=>s.equipment_id===d.equipment_id&&s.section===d.section&&s.status!=='draft').map(s=>s.version)) + 1;
       DB.standards.forEach(s => { if(s.equipment_id===d.equipment_id&&s.section===d.section&&s.status==='published') s.status='archived'; });
@@ -103,7 +111,7 @@
     return {data:{ok:true}};
   };
   window.DEMO_MOCK = { createClient: () => ({
-    auth: { getSession: async()=>({data:{session:{}}}), getUser: async()=>({data:{user:{id:ME}}}), signInWithPassword: async()=>({error:null}), signOut: async()=>{}, signUp: async()=>({data:{user:{id:uid()}},error:null}) },
+    auth: { getSession: async()=>({data:{session:{}}}), getUser: async()=>({data:{user:{id:ME, is_anonymous: !LOGGED}}}), signInAnonymously: async()=>({data:{session:{}},error:null}), signInWithPassword: async()=>({error:null}), signOut: async()=>{}, signUp: async()=>({data:{user:{id:uid()}},error:null}) },
     from, rpc,
     functions: { invoke: async (name, {body}) => { await new Promise(r=>setTimeout(r,800));
       if(body.mode==='texts'){ return {data:{ok:true, done:['en','vi'], failed:{}}}; }

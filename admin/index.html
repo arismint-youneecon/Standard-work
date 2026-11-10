@@ -159,10 +159,16 @@
   <div class="card">
     <h1 style="font-size:18px">표준작업 컨트롤타워</h1>
     <p class="muted" id="login-plant"></p>
-    <label class="f">이메일</label><input type="email" id="l-email" autocomplete="username">
-    <label class="f">비밀번호</label><input type="password" id="l-pw" autocomplete="current-password">
-    <button class="btn" id="l-btn" style="width:100%;margin-top:14px">로그인</button>
+    <label class="f">접속코드</label>
+    <input type="text" id="l-code" maxlength="8" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="8자리 코드" style="font-size:26px;letter-spacing:4px;text-align:center;text-transform:uppercase;font-family:monospace">
+    <button class="btn" id="l-code-btn" style="width:100%;margin-top:12px;padding:13px;font-size:16px">로그인</button>
     <div class="err" id="l-err" style="margin-top:8px"></div>
+    <p class="muted" style="margin:12px 0 0;line-height:1.6">코드는 관리자에게 받으세요. 한 번 입력하면 이 휴대폰에서는 다시 입력하지 않습니다.<br>홈 화면 아이콘으로 쓰실 거면, <b>아이콘을 먼저 만들고 아이콘으로 연 화면에서</b> 코드를 입력하세요.</p>
+    <details style="margin-top:14px"><summary class="muted" style="cursor:pointer">관리자 이메일 로그인</summary>
+      <label class="f">이메일</label><input type="email" id="l-email" autocomplete="username">
+      <label class="f">비밀번호</label><input type="password" id="l-pw" autocomplete="current-password">
+      <button class="btn sec" id="l-btn" style="width:100%;margin-top:10px">이메일로 로그인</button>
+    </details>
   </div>
 </div>
 
@@ -223,11 +229,41 @@ $('#l-btn').onclick = async () => {
   afterLogin();
 };
 $('#l-pw').addEventListener('keydown', e => { if(e.key==='Enter') $('#l-btn').click(); });
-$('#logout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+$('#l-code-btn').onclick = async () => {
+  const code = $('#l-code').value.trim().toUpperCase();
+  $('#l-err').textContent = '';
+  if(code.length < 6){ $('#l-err').textContent = '코드를 확인해 주세요'; return; }
+  $('#l-code-btn').disabled = true;
+  try {
+    let { data:{ session } } = await sb.auth.getSession();
+    if(!session){ const r = await sb.auth.signInAnonymously(); if(r.error) throw r.error; }
+    const { data, error } = await sb.rpc('redeem_editor_code', { p_code: code });
+    if(error) throw error;
+    if(!data.ok){
+      $('#l-err').textContent = { invalid_code:'존재하지 않는 코드입니다', code_used:'이미 2대의 휴대폰에서 사용된 코드입니다. 관리자에게 재발급을 요청하세요', code_expired:'기한이 지난 코드입니다. 관리자에게 재발급을 요청하세요', inactive:'비활성화된 계정입니다. 관리자에게 문의하세요', no_session:'연결 오류. 다시 시도해 주세요' }[data.error] || data.error;
+      return;
+    }
+    await afterLogin();
+  } catch(e){ $('#l-err').textContent = '연결 오류: ' + (e.message || e); }
+  finally { $('#l-code-btn').disabled = false; }
+};
+$('#l-code').addEventListener('keydown', e => { if(e.key==='Enter') $('#l-code-btn').click(); });
+$('#logout').onclick = async () => {
+  const anon = (await sb.auth.getUser()).data.user?.is_anonymous;
+  if(!await confirmBox(anon ? '이 휴대폰에서 로그아웃하면 다시 들어올 때 새 접속코드가 필요합니다. (이 휴대폰의 작업자 앱 등록도 함께 해제됩니다) 로그아웃할까요?' : '로그아웃할까요?')) return;
+  await sb.auth.signOut(); location.reload();
+};
 
 async function afterLogin(){
-  const { data: p } = await sb.from('profiles').select('*').eq('id', (await sb.auth.getUser()).data.user.id).maybeSingle();
-  if(!p || !p.active){ $('#l-err').textContent = '이 계정에는 컨트롤타워 권한이 없습니다. 관리자에게 요청하세요.'; await sb.auth.signOut(); return; }
+  const { data: p, error: pe } = await sb.rpc('my_profile');
+  if(pe){ $('#l-err').textContent = '연결 오류: ' + pe.message; return; }
+  if(!p){
+    // 코드 로그인 전(익명 세션)이면 그대로 코드 입력 화면 유지. 이메일 계정인데 권한이 없으면 로그아웃
+    const u = (await sb.auth.getUser()).data.user;
+    if(u && !u.is_anonymous){ $('#l-err').textContent = '이 계정에는 컨트롤타워 권한이 없습니다. 관리자에게 요청하세요.'; await sb.auth.signOut(); }
+    return;
+  }
+  if(!p.active){ $('#l-err').textContent = '비활성화된 계정입니다. 관리자에게 문의하세요.'; return; }
   me = p;
   const { data: pl } = await sb.from('profile_lines').select('line_id').eq('profile_id', me.id);
   myLines = (pl||[]).map(x => x.line_id);
@@ -762,32 +798,78 @@ async function delCode(code){ await sb.from('access_codes').delete().eq('code', 
 async function blockWorker(id, blocked){ const { error } = await sb.from('workers').update({ blocked }).eq('id', id); error ? toast(error.message) : go('workers'); }
 
 // =============================== 편집자 계정 (admin) ===============================
+const ADMIN_URL = location.origin + location.pathname.replace(/index\.html$/, '');
+let LAST_EDITOR_HTML = '', PROFILE_NAMES = {};
+const ROLE_HELP = '라인 책임자 = 담당 라인 등록·수정·게시 / 작성자 = 담당 라인 초안만 (게시 불가) / 관리자 = 전체';
+function editorCodeCard(name, code){
+  return `<div style="background:#eef4ff;border-radius:10px;padding:14px;margin-top:12px;display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+    <canvas id="u-qr" width="150" height="150" style="background:#fff;border-radius:8px"></canvas>
+    <div style="flex:1;min-width:200px"><div class="muted">${esc(name)} — 컨트롤타워 접속코드</div>
+      <div style="font-family:monospace;font-size:34px;font-weight:800;letter-spacing:4px">${esc(code)}</div>
+      <div class="muted" style="line-height:1.6">① 왼쪽 QR(컨트롤타워 주소)을 휴대폰 카메라로 찍기<br>② 열린 화면에 이 코드 입력 → 로그인 끝<br>7일 안에, 휴대폰 2대(사파리·홈 화면 앱)까지 쓸 수 있습니다.</div></div></div>`;
+}
+function drawEditorQR(){ const c = $('#u-qr'); if(c && window.QRCode) QRCode.toCanvas(c, ADMIN_URL, { width:150, margin:1 }); }
 PAGES.users = async () => {
-  const [{ data: profiles }, { data: pls }] = await Promise.all([ sb.from('profiles').select('*').order('created_at'), sb.from('profile_lines').select('*') ]);
+  const [{ data: profiles }, { data: pls }, { data: devs }, { data: codes }] = await Promise.all([
+    sb.from('profiles').select('*').order('created_at'),
+    sb.from('profile_lines').select('*'),
+    sb.from('editor_devices').select('profile_id,last_seen_at'),
+    sb.from('editor_codes').select('*'),
+  ]);
+  const activeLines = lines.filter(l => l.active);
+  PROFILE_NAMES = Object.fromEntries((profiles||[]).map(p => [p.id, p.name]));
   $('#main').innerHTML = `<h1>편집자 계정</h1>
-    <div class="card"><h2>계정 추가</h2>
-      <p class="muted">여기서 만든 계정으로 컨트롤타워에 로그인합니다. (Supabase Auth 설정에서 "Confirm email"을 꺼 두면 바로 로그인 가능)</p>
-      <div class="row"><input type="email" id="u-email" placeholder="이메일" style="width:220px"><input type="text" id="u-pw" placeholder="임시 비밀번호(8자+)" style="width:160px"><input type="text" id="u-name" placeholder="이름" style="width:120px">
-        <select id="u-role" style="width:140px"><option value="line_manager">라인 책임자</option><option value="author">작성자</option><option value="admin">관리자</option></select>
-        <button class="btn" onclick="createUser()">추가</button></div>
-      <div class="muted" style="margin-top:6px">라인 책임자 = 담당 라인 등록·수정·게시 / 작성자 = 담당 라인 초안만 (게시 불가) / 관리자 = 전체<br><b>삭제 권한</b> = 공장·라인·설비를 영구 삭제할 수 있는 별도 권한. 관리자라도 체크해야 삭제 가능. 꼭 필요한 1~2명에게만 주세요.</div></div>
-    <div class="card"><h2>계정 목록</h2><table><tr><th>이름</th><th>권한</th><th>담당 라인</th><th>상태</th><th></th></tr>
-      ${(profiles||[]).map(p => { const mine = (pls||[]).filter(x=>x.profile_id===p.id).map(x=>x.line_id); return `<tr style="${p.active?'':'opacity:.5'}"><td>${esc(p.name)} ${p.id===me.id?'<span class="badge">나</span>':''}</td><td><span class="badge ${p.role}">${ROLE[p.role]}</span></td>
-        <td>${p.role==='admin' ? '<span class="muted">전체</span>' : lines.map(l => `<label style="margin-right:10px;white-space:nowrap"><input type="checkbox" ${mine.includes(l.id)?'checked':''} onchange="setLine('${p.id}','${l.id}',this.checked)"> ${esc(l.code)}</label>`).join('')}</td>
-        <td>${p.active?'활성':'비활성'}<br><label style="white-space:nowrap;color:var(--nok)"><input type="checkbox" ${p.can_delete?'checked':''} onchange="setCanDelete('${p.id}',this.checked)"> 삭제 권한</label></td><td class="row"><select onchange="setRole('${p.id}',this.value)" style="width:120px"><option value="line_manager" ${p.role==='line_manager'?'selected':''}>라인 책임자</option><option value="author" ${p.role==='author'?'selected':''}>작성자</option><option value="admin" ${p.role==='admin'?'selected':''}>관리자</option></select>
-        ${p.id!==me.id?`<button class="btn sm sec" onclick="setActive('${p.id}',${!p.active})">${p.active?'비활성화':'활성화'}</button>`:''}</td></tr>`; }).join('')}</table></div>`;
+    <div class="card"><h2>편집자 추가</h2>
+      <p class="muted">이름과 권한을 정하고 담당 라인을 체크한 뒤 "추가하고 코드 발급"을 누르세요. 받는 사람은 컨트롤타워 QR을 찍고 8자리 코드만 입력하면 로그인됩니다. 이메일·비밀번호는 필요 없습니다.</p>
+      <div class="row"><input type="text" id="u-name" placeholder="이름 (예: 김책임)" style="width:180px">
+        <select id="u-role" style="width:150px" onchange="$('#u-lines-wrap').style.display = this.value==='admin' ? 'none' : ''"><option value="line_manager">라인 책임자</option><option value="author">작성자</option><option value="admin">관리자</option></select>
+        <label style="white-space:nowrap;color:var(--nok)"><input type="checkbox" id="u-del"> 삭제 권한</label></div>
+      <div id="u-lines-wrap" style="margin-top:10px"><div class="muted" style="margin-bottom:4px">담당 라인</div>
+        <div id="u-lines" class="row">${activeLines.map(l => `<label style="white-space:nowrap;margin-right:6px"><input type="checkbox" value="${l.id}"> ${esc(l.code)}</label>`).join('') || '<span class="muted">라인이 없습니다. 라인 · 설비에서 먼저 추가하세요.</span>'}</div></div>
+      <button class="btn" style="margin-top:12px" onclick="createEditor()">추가하고 코드 발급</button>
+      <div class="muted" style="margin-top:8px">${ROLE_HELP}<br><b>삭제 권한</b> = 공장·라인·설비 영구 삭제용 별도 권한. 꼭 필요한 1~2명에게만 주세요.</div>
+      <div id="u-result">${LAST_EDITOR_HTML}</div></div>
+    <div class="card"><h2>편집자 목록</h2><table><tr><th>이름</th><th>권한</th><th>담당 라인</th><th>휴대폰</th><th>접속코드</th><th></th></tr>
+      ${(profiles||[]).map(p => {
+        const mine = (pls||[]).filter(x=>x.profile_id===p.id).map(x=>x.line_id);
+        const d = (devs||[]).filter(x=>x.profile_id===p.id); const last = d.map(x=>x.last_seen_at).sort().pop();
+        const c = (codes||[]).find(x=>x.profile_id===p.id); const cValid = c && new Date(c.expires_at) > new Date() && c.use_count < c.max_uses;
+        return `<tr style="${p.active?'':'opacity:.5'}"><td><b>${esc(p.name)}</b> ${p.id===me.id?'<span class="badge">나</span>':''}<br>
+            <label style="white-space:nowrap;color:var(--nok);font-size:12px"><input type="checkbox" ${p.can_delete?'checked':''} onchange="setCanDelete('${p.id}',this.checked)"> 삭제 권한</label>${p.active?'':' <span class="badge arch">비활성</span>'}</td>
+          <td><select onchange="setRole('${p.id}',this.value)" style="width:120px"><option value="line_manager" ${p.role==='line_manager'?'selected':''}>라인 책임자</option><option value="author" ${p.role==='author'?'selected':''}>작성자</option><option value="admin" ${p.role==='admin'?'selected':''}>관리자</option></select></td>
+          <td>${p.role==='admin' ? '<span class="muted">전체</span>' : activeLines.map(l => `<label style="margin-right:8px;white-space:nowrap"><input type="checkbox" ${mine.includes(l.id)?'checked':''} onchange="setLine('${p.id}','${l.id}',this.checked)"> ${esc(l.code)}</label>`).join('')}</td>
+          <td>${d.length ? `<b>${d.length}대</b><div class="muted">최근 ${fmt(last)}</div>` : '<span class="muted">없음</span>'}</td>
+          <td>${cValid ? `<b style="font-family:monospace">${esc(c.code)}</b><div class="muted">사용 ${c.use_count}/${c.max_uses} · ~${fmt(c.expires_at)}</div>` : '<span class="muted">—</span>'}</td>
+          <td style="white-space:nowrap"><button class="btn sm" onclick="reissueEditorCode('${p.id}')">코드 재발급</button>
+            ${d.length && p.id!==me.id ? `<button class="btn sm sec" onclick="revokeDevices('${p.id}')">휴대폰 해제</button>` : ''}
+            ${p.id!==me.id ? `<button class="btn sm sec" onclick="setActive('${p.id}',${!p.active})">${p.active?'비활성화':'활성화'}</button>` : ''}</td></tr>`; }).join('')}</table>
+      <p class="muted" style="margin:10px 0 0">휴대폰을 바꾸거나 잃어버리면 "휴대폰 해제" 후 "코드 재발급". 퇴사·이동 시에는 "비활성화"하면 그 사람의 모든 휴대폰이 즉시 막힙니다.</p></div>`;
+  drawEditorQR();
 };
-async function createUser(){
-  const email=$('#u-email').value.trim(), password=$('#u-pw').value, name=$('#u-name').value.trim(), role=$('#u-role').value;
-  if(!email||password.length<8||!name) return toast('이메일, 8자 이상 비밀번호, 이름을 입력하세요');
-  // 관리자 세션을 유지하기 위해 별도 클라이언트로 가입 처리
-  const tmp = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, { auth: { persistSession:false, autoRefreshToken:false } });
-  const { data, error } = await tmp.auth.signUp({ email, password, options: { data: { name } } });
-  if(error) return toast('계정 생성 실패: ' + error.message);
-  if(!data.user) return toast('계정 생성 실패');
-  const { error: e2 } = await sb.from('profiles').insert({ id: data.user.id, name, role });
-  if(e2) return toast('프로필 저장 실패: ' + e2.message + ' (이미 가입된 이메일이면 Supabase > Authentication 에서 확인)');
-  toast('계정 추가됨 — 담당 라인을 체크하세요'); go('users');
+async function createEditor(){
+  const name = $('#u-name').value.trim(), role = $('#u-role').value, del = $('#u-del').checked;
+  const ls = role === 'admin' ? [] : [...document.querySelectorAll('#u-lines input:checked')].map(i => i.value);
+  if(!name) return toast('이름을 입력하세요');
+  if(role !== 'admin' && !ls.length) return toast('담당 라인을 1개 이상 체크하세요');
+  const { data, error } = await sb.rpc('create_editor', { p_name:name, p_role:role, p_lines:ls, p_can_delete:del });
+  if(error || !data.ok) return toast('추가 실패: ' + (error?.message || data.error));
+  LAST_EDITOR_HTML = editorCodeCard(name, data.code);
+  toast(`${name} 추가됨`); go('users');
+}
+async function reissueEditorCode(pid){
+  const name = PROFILE_NAMES[pid] || '';
+  if(!await confirmBox(`${name}님의 접속코드를 새로 발급할까요? 이전에 발급한 코드는 더 이상 쓸 수 없습니다. (이미 로그인된 휴대폰은 그대로 유지)`)) return;
+  const { data, error } = await sb.rpc('issue_editor_code', { p_profile: pid });
+  if(error || !data.ok) return toast('발급 실패: ' + (error?.message || data.error));
+  LAST_EDITOR_HTML = editorCodeCard(name, data.code);
+  go('users'); window.scrollTo(0,0);
+}
+async function revokeDevices(pid){
+  const name = PROFILE_NAMES[pid] || '';
+  if(!await confirmBox(`${name}님의 휴대폰 로그인을 모두 해제할까요? 다시 쓰려면 새 코드가 필요합니다.`)) return;
+  const { data, error } = await sb.rpc('revoke_editor_devices', { p_profile: pid });
+  if(error || !data.ok) return toast('해제 실패: ' + (error?.message || data.error));
+  toast(`휴대폰 ${data.devices}대 해제됨`); go('users');
 }
 async function setLine(pid, lid, on){ const r = on ? await sb.from('profile_lines').insert({ profile_id:pid, line_id:lid }) : await sb.from('profile_lines').delete().match({ profile_id:pid, line_id:lid }); if(r.error) toast(r.error.message); }
 async function setRole(pid, role){ const { error } = await sb.from('profiles').update({ role }).eq('id', pid); error ? toast(error.message) : go('users'); }
